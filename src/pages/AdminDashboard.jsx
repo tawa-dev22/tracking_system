@@ -73,7 +73,7 @@ export default function AdminDashboard() {
 
       // not privileged? send to normal dashboard
       if (!isPrivileged(r)) {
-        nav("/dashboard");
+        nav("/");
         return;
       }
 
@@ -202,11 +202,16 @@ export default function AdminDashboard() {
           </p>
           {errMsg && <p className="mt-2 text-sm text-red-600">{errMsg}</p>}
         </Card>
-        <Button variant="ghost" onClick={() => nav("/dashboard")}>
+        <Button variant="ghost" onClick={() => nav("/")}>
           Go to Dashboard
         </Button>
       </PageShell>
     );
+  }
+
+  async function logout() {
+    await supabase.auth.signOut();
+    nav("/login");
   }
 
   return (
@@ -214,14 +219,14 @@ export default function AdminDashboard() {
       title="Admin Dashboard"
       actions={
         <>
-          <Button variant="ghost" onClick={() => nav("/dashboard")}>
-            User Dashboard
-          </Button>
           <Button variant="ghost" onClick={() => nav("/change-password")}>
             My Password
           </Button>
           <Button variant="ghost" onClick={init}>
             Refresh
+          </Button>
+          <Button variant="ghost" onClick={logout}>
+            Logout
           </Button>
         </>
       }

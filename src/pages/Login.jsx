@@ -25,7 +25,7 @@ export default function Login() {
 
     const uid = data?.user?.id;
     if (!uid) {
-      nav("/dashboard");
+      nav("/");
       return;
     }
 
@@ -42,7 +42,7 @@ export default function Login() {
     if (role === "admin" || role === "superuser") {
       nav("/admin");
     } else {
-      nav("/dashboard");
+      nav("/");
     }
   }
 
