@@ -15,9 +15,32 @@ export default function Login() {
   async function submit(e) {
     e.preventDefault();
     setMsg("Signing in...");
-    const { error } = await supabase.auth.signInWithPassword({ email, password: pw });
+
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password: pw,
+    });
+
     if (error) return setMsg("❌ " + error.message);
-    nav("/");
+
+    const uid = data?.user?.id;
+    if (!uid) return setMsg("❌ No user ID found.");
+
+    setMsg("Checking access...");
+
+    const { data: profile, error: pErr } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", uid)
+      .single();
+
+    if (pErr) return setMsg("❌ " + pErr.message);
+
+    if (profile?.role === "admin") {
+      nav("/admin");
+    } else {
+      nav("/dashboard"); // change if your route is different
+    }
   }
 
   return (
@@ -25,23 +48,37 @@ export default function Login() {
       <div className="w-full max-w-md">
         <Card title="Login">
           <form className="space-y-3" onSubmit={submit}>
-            <TextInput label="Email" value={email} onChange={(e)=>setEmail(e.target.value)} />
+            <TextInput
+              label="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+
             <TextInput
               label="Password"
               type={show ? "text" : "password"}
               value={pw}
-              onChange={(e)=>setPw(e.target.value)}
+              onChange={(e) => setPw(e.target.value)}
               rightSlot={
-                <button type="button" className="text-xs underline" onClick={()=>setShow(s=>!s)}>
+                <button
+                  type="button"
+                  className="text-xs underline"
+                  onClick={() => setShow((s) => !s)}
+                >
                   {show ? "Hide" : "Show"}
                 </button>
               }
             />
+
             <Button type="submit">Login</Button>
+
             <p className="text-sm">{msg}</p>
+
             <p className="text-sm">
               No account?{" "}
-              <Link className="underline" to="/register">Register</Link>
+              <Link className="underline" to="/register">
+                Register
+              </Link>
             </p>
           </form>
         </Card>
