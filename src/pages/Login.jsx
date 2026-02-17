@@ -24,22 +24,25 @@ export default function Login() {
     if (error) return setMsg("❌ " + error.message);
 
     const uid = data?.user?.id;
-    if (!uid) return setMsg("❌ No user ID found.");
+    if (!uid) {
+      nav("/dashboard");
+      return;
+    }
 
-    setMsg("Checking access...");
+    setMsg("Checking role...");
 
-    const { data: profile, error: pErr } = await supabase
+    const { data: profile } = await supabase
       .from("profiles")
       .select("role")
       .eq("id", uid)
       .single();
 
-    if (pErr) return setMsg("❌ " + pErr.message);
+    const role = String(profile?.role || "user").toLowerCase();
 
-    if (profile?.role === "admin") {
+    if (role === "admin" || role === "superuser") {
       nav("/admin");
     } else {
-      nav("/dashboard"); // change if your route is different
+      nav("/dashboard");
     }
   }
 

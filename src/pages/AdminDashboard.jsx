@@ -28,8 +28,9 @@ export default function AdminDashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const normalizeRole = (r) => String(r || "user").toLowerCase();
   const isPrivileged = (r) => {
-    const v = String(r || "").toLowerCase();
+    const v = normalizeRole(r);
     return v === "superuser" || v === "admin";
   };
 
@@ -43,12 +44,13 @@ export default function AdminDashboard() {
       const { data: sessData, error: sessErr } = await supabase.auth.getSession();
       if (sessErr) {
         setErrMsg("Session error: " + sessErr.message);
+        nav("/login");
         return;
       }
 
       const uid = sessData?.session?.user?.id;
       if (!uid) {
-        setErrMsg("No session. Please login again.");
+        nav("/login");
         return;
       }
 
@@ -61,14 +63,18 @@ export default function AdminDashboard() {
 
       if (profErr) {
         setErrMsg("Profile read error: " + profErr.message);
+        // If we can't read profile, treat as not allowed
+        nav("/dashboard");
         return;
       }
 
-      const r = prof?.role || "user";
+      const r = normalizeRole(prof?.role);
       setRole(r);
 
+      // not privileged? send to normal dashboard
       if (!isPrivileged(r)) {
-        return; // not allowed
+        nav("/dashboard");
+        return;
       }
 
       // 3) users list
@@ -185,6 +191,7 @@ export default function AdminDashboard() {
     );
   }
 
+  // If user gets here but role isn't privileged, show message (should be rare because we redirect)
   if (!isPrivileged(role)) {
     return (
       <PageShell title="Admin Dashboard">
@@ -195,8 +202,8 @@ export default function AdminDashboard() {
           </p>
           {errMsg && <p className="mt-2 text-sm text-red-600">{errMsg}</p>}
         </Card>
-        <Button variant="ghost" onClick={() => nav("/")}>
-          Back
+        <Button variant="ghost" onClick={() => nav("/dashboard")}>
+          Go to Dashboard
         </Button>
       </PageShell>
     );
@@ -207,7 +214,7 @@ export default function AdminDashboard() {
       title="Admin Dashboard"
       actions={
         <>
-          <Button variant="ghost" onClick={() => nav("/")}>
+          <Button variant="ghost" onClick={() => nav("/dashboard")}>
             User Dashboard
           </Button>
           <Button variant="ghost" onClick={() => nav("/change-password")}>
@@ -293,12 +300,11 @@ export default function AdminDashboard() {
                 className="rounded-2xl border border-black/10 p-3 bg-white"
               >
                 <div className="font-semibold">
-                  {t.customer_name || "No customer"} — Order: {t.order_no || "-"}{" "}
-                  — Tel: {t.tel_no || "-"}
+                  {t.customer_name || "No customer"} — Order: {t.order_no || "-"} — Tel:{" "}
+                  {t.tel_no || "-"}
                 </div>
                 <div className="text-xs text-black/60 font-mono">
-                  {t.id} | By: {t.created_by} |{" "}
-                  {new Date(t.created_at).toLocaleString()}
+                  {t.id} | By: {t.created_by} | {new Date(t.created_at).toLocaleString()}
                 </div>
 
                 <div className="mt-2 flex gap-2 flex-wrap">
@@ -311,10 +317,7 @@ export default function AdminDashboard() {
                   {(docsByTicket[t.id] || []).map((d) => (
                     <li key={d.id}>
                       {d.file_name}{" "}
-                      <button
-                        className="underline text-sm"
-                        onClick={() => download(d.file_path)}
-                      >
+                      <button className="underline text-sm" onClick={() => download(d.file_path)}>
                         Download
                       </button>
                     </li>
@@ -329,8 +332,8 @@ export default function AdminDashboard() {
           <ul className="text-sm list-disc pl-6">
             {logs.map((l) => (
               <li key={l.id}>
-                {new Date(l.created_at).toLocaleString()} — {l.action} {l.entity}{" "}
-                — {String(l.entity_id || "")}
+                {new Date(l.created_at).toLocaleString()} — {l.action} {l.entity} —{" "}
+                {String(l.entity_id || "")}
               </li>
             ))}
           </ul>
