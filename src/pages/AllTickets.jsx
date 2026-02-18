@@ -16,26 +16,36 @@ export default function AllTickets() {
   const [docsByTicket, setDocsByTicket] = useState({});
   const [msg, setMsg] = useState("");
   const [errMsg, setErrMsg] = useState("");
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
-    if (!guardLoading && isPrivileged) init();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [guardLoading, isPrivileged]);
+    if (guardLoading || !isPrivileged) return;
 
-  async function init() {
-    setLoading(true);
-    setErrMsg("");
-    setMsg("");
+    let cancelled = false;
 
-    const ticketsRes = await supabase
-      .from("tickets")
-      .select("id, created_at, created_by, customer_name, order_no, tel_no")
-      .order("created_at", { ascending: false })
-      .limit(200);
+    (async () => {
+      setLoading(true);
+      setErrMsg("");
+      setMsg("");
 
-    if (ticketsRes.error) setErrMsg("Tickets error: " + ticketsRes.error.message);
-    setTickets(ticketsRes.data || []);
-    setLoading(false);
+      const ticketsRes = await supabase
+        .from("tickets")
+        .select("id, created_at, created_by, customer_name, order_no, tel_no")
+        .order("created_at", { ascending: false })
+        .limit(200);
+
+      if (cancelled) return;
+
+      if (ticketsRes.error) setErrMsg("Tickets error: " + ticketsRes.error.message);
+      setTickets(ticketsRes.data || []);
+      setLoading(false);
+    })();
+
+    return () => { cancelled = true; };
+  }, [guardLoading, isPrivileged, refreshKey]);
+
+  function refresh() {
+    setRefreshKey((k) => k + 1);
   }
 
   async function loadDocs(ticketId) {
@@ -98,7 +108,7 @@ export default function AllTickets() {
           >
             My Password
           </Button>
-          <Button variant="ghost" onClick={init}>
+          <Button variant="ghost" onClick={refresh}>
             Refresh
           </Button>
         </>

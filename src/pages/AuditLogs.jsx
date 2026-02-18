@@ -14,25 +14,35 @@ export default function AuditLogs() {
   const [loading, setLoading] = useState(true);
   const [logs, setLogs] = useState([]);
   const [errMsg, setErrMsg] = useState("");
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
-    if (!guardLoading && isPrivileged) init();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [guardLoading, isPrivileged]);
+    if (guardLoading || !isPrivileged) return;
 
-  async function init() {
-    setLoading(true);
-    setErrMsg("");
+    let cancelled = false;
 
-    const logsRes = await supabase
-      .from("audit_logs")
-      .select("id, created_at, actor, action, entity, entity_id")
-      .order("created_at", { ascending: false })
-      .limit(200);
+    (async () => {
+      setLoading(true);
+      setErrMsg("");
 
-    if (logsRes.error) setErrMsg("Logs error: " + logsRes.error.message);
-    setLogs(logsRes.data || []);
-    setLoading(false);
+      const logsRes = await supabase
+        .from("audit_logs")
+        .select("id, created_at, actor, action, entity, entity_id")
+        .order("created_at", { ascending: false })
+        .limit(200);
+
+      if (cancelled) return;
+
+      if (logsRes.error) setErrMsg("Logs error: " + logsRes.error.message);
+      setLogs(logsRes.data || []);
+      setLoading(false);
+    })();
+
+    return () => { cancelled = true; };
+  }, [guardLoading, isPrivileged, refreshKey]);
+
+  function refresh() {
+    setRefreshKey((k) => k + 1);
   }
 
   if (guardLoading) {
@@ -71,7 +81,7 @@ export default function AuditLogs() {
           >
             My Password
           </Button>
-          <Button variant="ghost" onClick={init}>
+          <Button variant="ghost" onClick={refresh}>
             Refresh
           </Button>
         </>

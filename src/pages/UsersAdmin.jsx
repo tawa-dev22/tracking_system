@@ -19,25 +19,35 @@ export default function UsersAdmin() {
   const [newPw, setNewPw] = useState("");
   const [msg, setMsg] = useState("");
   const [errMsg, setErrMsg] = useState("");
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
-    if (!guardLoading && isPrivileged) init();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [guardLoading, isPrivileged]);
+    if (guardLoading || !isPrivileged) return;
 
-  async function init() {
-    setLoading(true);
-    setErrMsg("");
-    setMsg("");
+    let cancelled = false;
 
-    const usersRes = await supabase
-      .from("profiles")
-      .select("id, full_name, email, role, created_at")
-      .order("created_at", { ascending: false });
+    (async () => {
+      setLoading(true);
+      setErrMsg("");
+      setMsg("");
 
-    if (usersRes.error) setErrMsg("Users query error: " + usersRes.error.message);
-    setUsers(usersRes.data || []);
-    setLoading(false);
+      const usersRes = await supabase
+        .from("profiles")
+        .select("id, full_name, email, role, created_at")
+        .order("created_at", { ascending: false });
+
+      if (cancelled) return;
+
+      if (usersRes.error) setErrMsg("Users query error: " + usersRes.error.message);
+      setUsers(usersRes.data || []);
+      setLoading(false);
+    })();
+
+    return () => { cancelled = true; };
+  }, [guardLoading, isPrivileged, refreshKey]);
+
+  function refresh() {
+    setRefreshKey((k) => k + 1);
   }
 
   async function resetUserPassword() {
@@ -67,7 +77,7 @@ export default function UsersAdmin() {
 
     setMsg("✅ Password reset successfully");
     setNewPw("");
-    init();
+    refresh();
   }
 
   if (guardLoading) {
@@ -106,7 +116,7 @@ export default function UsersAdmin() {
           >
             My Password
           </Button>
-          <Button variant="ghost" onClick={init}>
+          <Button variant="ghost" onClick={refresh}>
             Refresh
           </Button>
         </>
