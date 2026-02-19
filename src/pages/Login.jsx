@@ -11,10 +11,12 @@ export default function Login() {
   const [pw, setPw] = useState("");
   const [show, setShow] = useState(false);
   const [msg, setMsg] = useState("");
+  const [resetMsg, setResetMsg] = useState("");
 
   async function submit(e) {
     e.preventDefault();
     setMsg("Signing in...");
+    setResetMsg("");
 
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
@@ -46,6 +48,25 @@ export default function Login() {
     }
   }
 
+  async function sendReset() {
+    setResetMsg("");
+    if (!email) {
+      setResetMsg("❌ Enter your email first");
+      return;
+    }
+
+    setResetMsg("Sending reset email...");
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/change-password`,
+    });
+
+    if (error) {
+      setResetMsg("❌ " + error.message);
+    } else {
+      setResetMsg("✅ Reset link sent. Check your email.");
+    }
+  }
+
   return (
     <div className="min-h-screen bg-black/5 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
@@ -73,9 +94,18 @@ export default function Login() {
               }
             />
 
+            <button
+              type="button"
+              onClick={sendReset}
+              className="text-xs text-blue-700 underline text-left"
+            >
+              Forgot password?
+            </button>
+
             <Button type="submit">Login</Button>
 
             <p className="text-sm">{msg}</p>
+            {resetMsg && <p className="text-xs mt-1">{resetMsg}</p>}
 
             <p className="text-sm">
               No account?{" "}

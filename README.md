@@ -1,16 +1,81 @@
-# React + Vite
+# Fault Tracking System
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React (Vite) + Tailwind + Supabase (Auth, Postgres, Storage, Realtime).
 
-Currently, two official plugins are available:
+## Quick start
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+1. Install deps:
 
-## React Compiler
+```bash
+npm install
+```
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+2. Create `.env` in the project root:
 
-## Expanding the ESLint configuration
+```bash
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+3. Run:
+
+```bash
+npm run dev
+```
+
+## Supabase setup (required for profile pictures + conversations)
+
+In the Supabase SQL editor (on the website), run this SQL against your Postgres database:
+
+```sql
+-- 1) Profile avatar support
+alter table public.profiles
+  add column if not exists avatar_path text;
+
+-- 2) Messages (admin <-> user conversations)
+create table if not exists public.messages (
+  id uuid primary key default gen_random_uuid(),
+  created_at timestamptz not null default now(),
+  sender_id uuid not null references auth.users(id) on delete cascade,
+  recipient_id uuid not null references auth.users(id) on delete cascade,
+  body text not null,
+  read_at timestamptz null
+);
+
+create index if not exists messages_sender_idx on public.messages(sender_id);
+create index if not exists messages_recipient_idx on public.messages(recipient_id);
+create index if not exists messages_created_at_idx on public.messages(created_at desc);
+
+-- 3) RLS policies
+alter table public.messages enable row level security;
+
+create policy if not exists "messages_read_own"
+on public.messages for select
+using (auth.uid() = sender_id or auth.uid() = recipient_id);
+
+create policy if not exists "messages_insert_self"
+on public.messages for insert
+with check (auth.uid() = sender_id);
+
+create policy if not exists "messages_update_recipient"
+on public.messages for update
+using (auth.uid() = recipient_id)
+with check (auth.uid() = recipient_id);
+```
+
+Create Storage buckets:
+
+- `ticket-docs` (already used by ticket uploads)
+- `avatars` (used by profile pictures)
+
+## Admin user management (Edge Functions)
+
+The admin UI calls these Edge Functions:
+
+- `admin-reset-password` (already referenced in the app)
+- `admin-create-user` (used by “Create new user”)
+
+These must be deployed on Supabase **using the Service Role key** (never expose it in the frontend).
+
+If `admin-create-user` is not deployed yet, the UI will show an error when you try to create a user — the rest of the admin dashboard will still work.
+

@@ -1,349 +1,256 @@
-import { useEffect, useState } from "react";
-import { supabase } from "../supabaseClient";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-
-import PageShell from "../Components/layout/PageShell";
+import { supabase } from "../supabaseClient";
+import useSessionProfile from "../hooks/useSessionProfile";
+import useRealtimeNotifications from "../hooks/useRealtimeNotifications";
+import { getAvatarUrlFromPath } from "../lib/avatar";
+import DashboardShell from "../Components/layout/DashboardShell";
 import Card from "../Components/ui/Card";
-import TextInput from "../Components/ui/TextInput";
 import Button from "../Components/ui/Button";
+
+function StatCard({ label, value, hint }) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur">
+      <div className="text-xs tracking-widest text-white/50">{label}</div>
+      <div className="mt-2 text-2xl font-extrabold">{value}</div>
+      {hint && <div className="mt-1 text-xs text-white/40">{hint}</div>}
+    </div>
+  );
+}
 
 export default function AdminDashboard() {
   const nav = useNavigate();
+  const { loading, session, profile, privileged } = useSessionProfile();
+  const uid = session?.user?.id;
 
-  const [loading, setLoading] = useState(true);
-  const [role, setRole] = useState("user");
+  const avatarUrl = useMemo(() => getAvatarUrlFromPath(profile?.avatar_path), [profile?.avatar_path]);
+  const notif = useRealtimeNotifications({ userId: uid, isAdmin: true });
 
-  const [users, setUsers] = useState([]);
-  const [tickets, setTickets] = useState([]);
-  const [logs, setLogs] = useState([]);
-  const [docsByTicket, setDocsByTicket] = useState({});
+  const [usersCount, setUsersCount] = useState(0);
+  const [ticketsCount, setTicketsCount] = useState(0);
+  const [auditCount, setAuditCount] = useState(0);
 
-  const [selectedUserId, setSelectedUserId] = useState("");
-  const [newPw, setNewPw] = useState("");
-  const [msg, setMsg] = useState("");
+  const [latestTickets, setLatestTickets] = useState([]);
+  const [latestUsers, setLatestUsers] = useState([]);
+  const [latestLogs, setLatestLogs] = useState([]);
+
   const [errMsg, setErrMsg] = useState("");
 
-  useEffect(() => {
-    init();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const normalizeRole = (r) => String(r || "user").toLowerCase();
-  const isPrivileged = (r) => {
-    const v = normalizeRole(r);
-    return v === "superuser" || v === "admin";
-  };
-
-  async function init() {
-    setLoading(true);
+  async function refresh() {
     setErrMsg("");
-    setMsg("");
 
-    try {
-      // 1) session
-      const { data: sessData, error: sessErr } = await supabase.auth.getSession();
-      if (sessErr) {
-        setErrMsg("Session error: " + sessErr.message);
-        nav("/login");
-        return;
-      }
+    const u = await supabase.from("profiles").select("id", { count: "exact", head: true });
+    if (u.error) setErrMsg((p) => (p ? p + " | " : "") + u.error.message);
+    setUsersCount(u.count || 0);
 
-      const uid = sessData?.session?.user?.id;
-      if (!uid) {
-        nav("/login");
-        return;
-      }
+    const t = await supabase.from("tickets").select("id", { count: "exact", head: true });
+    if (t.error) setErrMsg((p) => (p ? p + " | " : "") + t.error.message);
+    setTicketsCount(t.count || 0);
 
-      // 2) role check
-      const { data: prof, error: profErr } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", uid)
-        .single();
+    const a = await supabase.from("audit_logs").select("id", { count: "exact", head: true });
+    if (a.error) setErrMsg((p) => (p ? p + " | " : "") + a.error.message);
+    setAuditCount(a.count || 0);
 
-      if (profErr) {
-        setErrMsg("Profile read error: " + profErr.message);
-        // If we can't read profile, treat as not allowed
-        nav("/dashboard");
-        return;
-      }
+    const latestT = await supabase
+      .from("tickets")
+      .select("id, created_at, customer_name, order_no, tel_no, created_by")
+      .order("created_at", { ascending: false })
+      .limit(6);
+    setLatestTickets(latestT.data || []);
 
-      const r = normalizeRole(prof?.role);
-      setRole(r);
+    const latestU = await supabase
+      .from("profiles")
+      .select("id, full_name, email, role, created_at")
+      .order("created_at", { ascending: false })
+      .limit(6);
+    setLatestUsers(latestU.data || []);
 
-      // not privileged? send to normal dashboard
-      if (!isPrivileged(r)) {
-        nav("/");
-        return;
-      }
+    const latestL = await supabase
+      .from("audit_logs")
+      .select("id, created_at, actor, action, entity, entity_id")
+      .order("created_at", { ascending: false })
+      .limit(6);
+    setLatestLogs(latestL.data || []);
+  }
 
-      // 3) users list
-      const usersRes = await supabase
+  useEffect(() => {
+    if (!uid) return;
+    refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [uid]);
+
+  // Realtime: keep counts fresh + keep latest cards fresh
+  useEffect(() => {
+    if (!uid) return;
+    const ch = supabase.channel("admin-dashboard");
+
+    ch.on("postgres_changes", { event: "INSERT", schema: "public", table: "tickets" }, () => {
+      setTicketsCount((c) => c + 1);
+      supabase
+        .from("tickets")
+        .select("id, created_at, customer_name, order_no, tel_no, created_by")
+        .order("created_at", { ascending: false })
+        .limit(6)
+        .then((r) => setLatestTickets(r.data || []));
+    });
+
+    ch.on("postgres_changes", { event: "INSERT", schema: "public", table: "profiles" }, () => {
+      setUsersCount((c) => c + 1);
+      supabase
         .from("profiles")
         .select("id, full_name, email, role, created_at")
-        .order("created_at", { ascending: false });
-
-      if (usersRes.error) {
-        setErrMsg("Users query error: " + usersRes.error.message);
-      } else {
-        setUsers(usersRes.data || []);
-      }
-
-      // 4) tickets list
-      const ticketsRes = await supabase
-        .from("tickets")
-        .select("id, created_at, created_by, customer_name, order_no, tel_no")
         .order("created_at", { ascending: false })
-        .limit(200);
+        .limit(6)
+        .then((r) => setLatestUsers(r.data || []));
+    });
 
-      if (ticketsRes.error) {
-        setErrMsg((prev) =>
-          prev
-            ? prev + " | Tickets error: " + ticketsRes.error.message
-            : "Tickets error: " + ticketsRes.error.message
-        );
-      } else {
-        setTickets(ticketsRes.data || []);
-      }
-
-      // 5) audit logs
-      const logsRes = await supabase
+    ch.on("postgres_changes", { event: "INSERT", schema: "public", table: "audit_logs" }, () => {
+      setAuditCount((c) => c + 1);
+      supabase
         .from("audit_logs")
         .select("id, created_at, actor, action, entity, entity_id")
         .order("created_at", { ascending: false })
-        .limit(100);
+        .limit(6)
+        .then((r) => setLatestLogs(r.data || []));
+    });
 
-      if (logsRes.error) {
-        setErrMsg((prev) =>
-          prev
-            ? prev + " | Logs error: " + logsRes.error.message
-            : "Logs error: " + logsRes.error.message
-        );
-      } else {
-        setLogs(logsRes.data || []);
-      }
-    } catch (e) {
-      setErrMsg("Init crash: " + String(e));
-    } finally {
-      setLoading(false);
-    }
-  }
+    ch.subscribe();
+    return () => {
+      supabase.removeChannel(ch);
+    };
+  }, [uid]);
 
-  async function loadDocs(ticketId) {
-    const res = await supabase
-      .from("ticket_documents")
-      .select("id, file_name, file_path, created_at")
-      .eq("ticket_id", ticketId)
-      .order("created_at", { ascending: false });
+  useEffect(() => {
+    if (loading) return;
+    if (!uid) nav("/login");
+    if (!privileged) nav("/");
+  }, [loading, uid, privileged, nav]);
 
-    if (res.error) {
-      setMsg("Docs error: " + res.error.message);
-      return;
-    }
+  if (loading) return null;
 
-    setDocsByTicket((p) => ({ ...p, [ticketId]: res.data || [] }));
-  }
-
-  async function download(file_path) {
-    const { data, error } = await supabase.storage
-      .from("ticket-docs")
-      .createSignedUrl(file_path, 60);
-
-    if (error) return setMsg("Download error: " + error.message);
-    window.open(data.signedUrl, "_blank");
-  }
-
-  async function resetUserPassword() {
-    setMsg("");
-    if (!selectedUserId) return setMsg("❌ Select a user");
-    if (newPw.length < 6) return setMsg("❌ Password must be at least 6 chars");
-
-    setMsg("Resetting password...");
-
-    const { data: sess } = await supabase.auth.getSession();
-    const token = sess?.session?.access_token;
-
-    const res = await fetch(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-reset-password`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ user_id: selectedUserId, new_password: newPw }),
-      }
-    );
-
-    const out = await res.json();
-    if (!res.ok) return setMsg("❌ " + (out.error || "Failed"));
-
-    setMsg("✅ Password reset successfully");
-    setNewPw("");
-    init();
-  }
-
-  if (loading) {
-    return (
-      <PageShell title="Admin Dashboard">
-        <Card title="Loading...">Please wait.</Card>
-      </PageShell>
-    );
-  }
-
-  // If user gets here but role isn't privileged, show message (should be rare because we redirect)
-  if (!isPrivileged(role)) {
-    return (
-      <PageShell title="Admin Dashboard">
-        <Card title="Access denied">
-          ❌ You are not allowed to access this page.
-          <p className="mt-2 text-sm">
-            Detected role: <b>{String(role || "unknown")}</b>
-          </p>
-          {errMsg && <p className="mt-2 text-sm text-red-600">{errMsg}</p>}
-        </Card>
-        <Button variant="ghost" onClick={() => nav("/")}>
-          Go to Dashboard
-        </Button>
-      </PageShell>
-    );
-  }
-
-  async function logout() {
-    await supabase.auth.signOut();
-    nav("/login");
-  }
+  const items = [
+    { to: "/admin", label: "Dashboard", icon: "🏠" },
+    { to: "/admin/tickets", label: "All Tickets", icon: "🎫", badge: notif.newTickets || 0 },
+    { to: "/admin/logs", label: "Audit Logs", icon: "🧾" },
+    { to: "/admin/users", label: "Users", icon: "👥", badge: notif.newUsers || 0 },
+    { to: "/admin/messages", label: "Conversations", icon: "💬", badge: notif.unreadMessages || 0 },
+  ];
 
   return (
-    <PageShell
-      title="Admin Dashboard"
-      actions={
-        <>
-          <Button variant="ghost" onClick={() => nav("/change-password")}>
+    <DashboardShell
+      appName="Fault Tracking"
+      title="Dashboard"
+      subtitle="Here is today’s report and performance"
+      items={items}
+      profile={{ ...profile, avatarUrl }}
+      notificationBadge={notif.totalBadge}
+      topRight={
+        <div className="flex gap-2">
+          <Button variant="ghost" onClick={() => nav("/change-password", { state: { redirectTo: "/admin" } })}>
             My Password
           </Button>
-          <Button variant="ghost" onClick={init}>
+          <Button variant="ghost" onClick={refresh}>
             Refresh
           </Button>
-          <Button variant="ghost" onClick={logout}>
-            Logout
-          </Button>
-        </>
+        </div>
       }
     >
       {errMsg && (
-        <Card title="Dashboard error">
-          <p className="text-sm text-red-600">{errMsg}</p>
-        </Card>
+        <div className="rounded-2xl border border-red-400/20 bg-red-500/10 p-3 text-sm text-red-200">
+          {errMsg}
+        </div>
       )}
 
-      <div className="grid gap-4 mt-4">
-        <Card title="Users">
-          <div className="overflow-auto">
-            <table className="w-full text-sm">
-              <thead className="text-left border-b">
-                <tr>
-                  <th className="py-2">Name</th>
-                  <th>Email</th>
-                  <th>Role</th>
-                  <th>User ID</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((u) => (
-                  <tr key={u.id} className="border-b">
-                    <td className="py-2">{u.full_name || "-"}</td>
-                    <td>{u.email || "-"}</td>
-                    <td>{u.role}</td>
-                    <td className="font-mono text-xs">{u.id}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      {/* Stats */}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard label="TOTAL USERS" value={usersCount} hint="Includes admins and users" />
+        <StatCard label="ALL TICKETS" value={ticketsCount} hint="Updates live when a new ticket is created" />
+        <StatCard label="AUDIT LOGS" value={auditCount} hint="Latest actions recorded" />
+        <StatCard label="UNREAD MESSAGES" value={notif.unreadMessages} hint="New user messages" />
+      </div>
+
+      {/* Middle */}
+      <div className="grid gap-4 mt-4 lg:grid-cols-2">
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur">
+          <div className="flex items-center justify-between">
+            <div className="font-semibold text-white/90">Latest Tickets</div>
+            <button className="text-sm text-white/60 underline" onClick={() => nav("/admin/tickets")}>
+              View all
+            </button>
           </div>
-        </Card>
-
-        <Card title="Reset a user's password">
-          <div className="grid gap-3 max-w-xl">
-            <div className="grid gap-1">
-              <label className="text-sm font-medium">Select user</label>
-              <select
-                className="w-full rounded-xl border border-black/15 px-3 py-2"
-                value={selectedUserId}
-                onChange={(e) => setSelectedUserId(e.target.value)}
-              >
-                <option value="">-- choose --</option>
-                {users.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.email || u.full_name || u.id}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <TextInput
-              label="New password"
-              type="password"
-              value={newPw}
-              onChange={(e) => setNewPw(e.target.value)}
-              placeholder="Min 6 chars"
-            />
-
-            <Button variant="danger" onClick={resetUserPassword}>
-              Reset Password
-            </Button>
-
-            <p className="text-sm">{msg}</p>
-          </div>
-        </Card>
-
-        <Card title="All Tickets (latest 200)">
-          <div className="grid gap-3">
-            {tickets.map((t) => (
-              <div
-                key={t.id}
-                className="rounded-2xl border border-black/10 p-3 bg-white"
-              >
-                <div className="font-semibold">
-                  {t.customer_name || "No customer"} — Order: {t.order_no || "-"} — Tel:{" "}
-                  {t.tel_no || "-"}
+          <div className="mt-3 grid gap-2">
+            {latestTickets.map((t) => (
+              <div key={t.id} className="rounded-xl border border-white/10 bg-black/10 p-3">
+                <div className="text-sm font-semibold">
+                  {t.customer_name || "No customer"} • Order {t.order_no || "-"} • Tel {t.tel_no || "-"}
                 </div>
-                <div className="text-xs text-black/60 font-mono">
-                  {t.id} | By: {t.created_by} | {new Date(t.created_at).toLocaleString()}
+                <div className="mt-1 text-xs text-white/50 font-mono">
+                  {t.id} • {new Date(t.created_at).toLocaleString()}
                 </div>
-
-                <div className="mt-2 flex gap-2 flex-wrap">
-                  <Button variant="ghost" onClick={() => loadDocs(t.id)}>
-                    Load Documents
-                  </Button>
-                </div>
-
-                <ul className="mt-2 list-disc pl-6 text-sm">
-                  {(docsByTicket[t.id] || []).map((d) => (
-                    <li key={d.id}>
-                      {d.file_name}{" "}
-                      <button className="underline text-sm" onClick={() => download(d.file_path)}>
-                        Download
-                      </button>
-                    </li>
-                  ))}
-                </ul>
               </div>
             ))}
+            {latestTickets.length === 0 && <div className="text-sm text-white/60">No tickets yet.</div>}
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur">
+          <div className="flex items-center justify-between">
+            <div className="font-semibold text-white/90">New Users</div>
+            <button className="text-sm text-white/60 underline" onClick={() => nav("/admin/users")}>
+              Manage
+            </button>
+          </div>
+          <div className="mt-3 grid gap-2">
+            {latestUsers.map((u) => (
+              <div key={u.id} className="rounded-xl border border-white/10 bg-black/10 p-3">
+                <div className="text-sm font-semibold">{u.full_name || u.email || u.id}</div>
+                <div className="mt-1 text-xs text-white/50">
+                  {u.email || ""} • role: {String(u.role || "user")}
+                </div>
+              </div>
+            ))}
+            {latestUsers.length === 0 && <div className="text-sm text-white/60">No users yet.</div>}
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom */}
+      <div className="grid gap-4 mt-4 lg:grid-cols-3">
+        <div className="lg:col-span-2 rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur">
+          <div className="flex items-center justify-between">
+            <div className="font-semibold text-white/90">Audit Logs</div>
+            <button className="text-sm text-white/60 underline" onClick={() => nav("/admin/logs")}>
+              View all
+            </button>
+          </div>
+          <div className="mt-3 grid gap-2">
+            {latestLogs.map((l) => (
+              <div key={l.id} className="rounded-xl border border-white/10 bg-black/10 p-3 text-sm">
+                <div className="text-white/80">
+                  {l.action} {l.entity} • {String(l.entity_id || "")}
+                </div>
+                <div className="mt-1 text-xs text-white/50">{new Date(l.created_at).toLocaleString()}</div>
+              </div>
+            ))}
+            {latestLogs.length === 0 && <div className="text-sm text-white/60">No logs yet.</div>}
+          </div>
+        </div>
+
+        <Card
+          title="Quick actions"
+          className="border-white/10 bg-white/5 text-white backdrop-blur"
+          titleClassName="text-white"
+        >
+          <div className="grid gap-2">
+            <Button onClick={() => nav("/admin/tickets")}>Open tickets</Button>
+            <Button onClick={() => nav("/admin/users")}>Manage users</Button>
+            <Button onClick={() => nav("/admin/messages")}>Open conversations</Button>
+          </div>
+          <div className="mt-3 text-xs text-white/50">
+            These sections are all wired to the system and update live via Supabase Realtime.
           </div>
         </Card>
-
-        <Card title="Audit Logs (latest 100)">
-          <ul className="text-sm list-disc pl-6">
-            {logs.map((l) => (
-              <li key={l.id}>
-                {new Date(l.created_at).toLocaleString()} — {l.action} {l.entity} —{" "}
-                {String(l.entity_id || "")}
-              </li>
-            ))}
-          </ul>
-        </Card>
       </div>
-    </PageShell>
+    </DashboardShell>
   );
 }

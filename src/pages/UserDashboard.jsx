@@ -1,55 +1,100 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabaseClient";
-import { Link, useNavigate } from "react-router-dom";
-
-import PageShell from "../Components/layout/PageShell";
+import useSessionProfile from "../hooks/useSessionProfile";
+import useRealtimeNotifications from "../hooks/useRealtimeNotifications";
+import { getAvatarUrlFromPath } from "../lib/avatar";
+import DashboardShell from "../Components/layout/DashboardShell";
 import Card from "../Components/ui/Card";
 import Button from "../Components/ui/Button";
 
 export default function UserDashboard() {
   const nav = useNavigate();
-  const [role, setRole] = useState("user");
+  const { loading, session, profile, privileged } = useSessionProfile();
+  const uid = session?.user?.id;
+
+  const avatarUrl = useMemo(() => getAvatarUrlFromPath(profile?.avatar_path), [profile?.avatar_path]);
+  const notif = useRealtimeNotifications({ userId: uid, isAdmin: false });
+
   const [tickets, setTickets] = useState([]);
+  const [err, setErr] = useState("");
 
   useEffect(() => {
-    async function load() {
-      const { data: sess } = await supabase.auth.getSession();
-      const user = sess?.session?.user;
-      if (!user) return;
+    if (loading) return;
+    if (!uid) nav("/login");
+    if (privileged) nav("/admin");
+  }, [loading, uid, privileged, nav]);
 
-      const prof = await supabase.from("profiles").select("role").eq("id", user.id).single();
-      setRole(prof.data?.role || "user");
+  useEffect(() => {
+    if (!uid) return;
+    let cancelled = false;
 
-      const { data } = await supabase
+    (async () => {
+      setErr("");
+      const res = await supabase
         .from("tickets")
-        .select("id, created_at, customer_name, order_no, tel_no")
+        .select("id, created_at, customer_name, order_no, tel_no, created_by")
+        .eq("created_by", uid)
         .order("created_at", { ascending: false });
 
-      setTickets(data || []);
-    }
-    load();
-  }, []);
+      if (cancelled) return;
+      if (res.error) setErr(res.error.message);
+      setTickets(res.data || []);
+    })();
 
-  async function logout() {
-    await supabase.auth.signOut();
-    nav("/login");
-  }
+    // realtime: my new ticket increments list
+    const ch = supabase.channel(`my-tickets:${uid}`);
+    ch.on(
+      "postgres_changes",
+      { event: "INSERT", schema: "public", table: "tickets", filter: `created_by=eq.${uid}` },
+      (payload) => setTickets((prev) => [payload.new, ...prev])
+    );
+    ch.subscribe();
 
-  const actions = (
-    <>
-      <Link to="/new"><Button>Create Form</Button></Link>
-      <Link to="/change-password"><Button variant="ghost">Change Password</Button></Link>
-      {role === "superuser" && <Link to="/admin"><Button variant="ghost">Superuser</Button></Link>}
-      <Button variant="ghost" onClick={logout}>Logout</Button>
-    </>
-  );
+    return () => {
+      cancelled = true;
+      supabase.removeChannel(ch);
+    };
+  }, [uid]);
+
+  const items = [
+    { to: "/", label: "Dashboard", icon: "🏠" },
+    { to: "/new", label: "New Ticket", icon: "➕" },
+    { to: "/messages", label: "Conversations", icon: "💬", badge: notif.unreadMessages || 0 },
+  ];
+
+  if (loading) return null;
 
   return (
-    <PageShell title="Dashboard" actions={actions}>
-      <Card title="My submissions">
+    <DashboardShell
+      title="Dashboard"
+      subtitle="Your submitted tickets"
+      items={items}
+      profile={{ ...profile, avatarUrl }}
+      notificationBadge={notif.totalBadge}
+      topRight={
+        <div className="flex gap-2">
+          <Button onClick={() => nav("/new")}>Create Ticket</Button>
+          <Button variant="ghost" onClick={() => nav("/change-password")}>
+            Change Password
+          </Button>
+        </div>
+      }
+    >
+      {err && (
+        <div className="rounded-2xl border border-red-400/20 bg-red-500/10 p-3 text-sm text-red-200">
+          {err}
+        </div>
+      )}
+
+      <Card
+        title={`My submissions (${tickets.length})`}
+        className="border-white/10 bg-white/5 text-white backdrop-blur"
+        titleClassName="text-white"
+      >
         <div className="overflow-auto">
           <table className="w-full text-sm">
-            <thead className="text-left border-b">
+            <thead className="text-left border-b border-white/10 text-white/70">
               <tr>
                 <th className="py-2">Date</th>
                 <th>Customer</th>
@@ -58,9 +103,9 @@ export default function UserDashboard() {
                 <th>Ticket ID</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="text-white/80">
               {tickets.map((t) => (
-                <tr key={t.id} className="border-b">
+                <tr key={t.id} className="border-b border-white/5">
                   <td className="py-2">{new Date(t.created_at).toLocaleString()}</td>
                   <td>{t.customer_name || "-"}</td>
                   <td>{t.order_no || "-"}</td>
@@ -72,6 +117,6 @@ export default function UserDashboard() {
           </table>
         </div>
       </Card>
-    </PageShell>
+    </DashboardShell>
   );
 }
