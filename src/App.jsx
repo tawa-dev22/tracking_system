@@ -9,6 +9,10 @@ import UserDashboard from "./pages/UserDashboard";
 import ChangePassword from "./pages/ChangePassword";
 import NewTicketWizard from "./pages/NewTicketWizard";
 import AdminDashboard from "./pages/AdminDashboard";
+import AdminHome from "./pages/AdminHome";
+import AllTickets from "./pages/AllTickets";
+import AuditLogs from "./pages/AuditLogs";
+import UsersAdmin from "./pages/UsersAdmin";
 
 export default function App() {
   const [session, setSession] = useState(null);
@@ -27,7 +31,13 @@ export default function App() {
       <Route path="/" element={<ProtectedRoute session={session}><UserDashboard /></ProtectedRoute>} />
       <Route path="/change-password" element={<ProtectedRoute session={session}><ChangePassword /></ProtectedRoute>} />
       <Route path="/new" element={<ProtectedRoute session={session}><NewTicketWizard /></ProtectedRoute>} />
+      
+      {/* Admin Routes */}
       <Route path="/admin" element={<ProtectedRoute session={session}><AdminDashboard /></ProtectedRoute>} />
+      <Route path="/admin/home" element={<ProtectedRoute session={session}><AdminHome /></ProtectedRoute>} />
+      <Route path="/admin/tickets" element={<ProtectedRoute session={session}><AllTickets /></ProtectedRoute>} />
+      <Route path="/admin/logs" element={<ProtectedRoute session={session}><AuditLogs /></ProtectedRoute>} />
+      <Route path="/admin/users" element={<ProtectedRoute session={session}><UsersAdmin /></ProtectedRoute>} />
     </Routes>
   );
 }
