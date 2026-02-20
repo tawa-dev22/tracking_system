@@ -19,12 +19,21 @@ import UserMessages from "./pages/UserMessages";
 
 export default function App() {
   const [session, setSession] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setSession(data.session));
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session);
+      setLoading(false);
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
+      setSession(s);
+      setLoading(false);
+    });
     return () => sub.subscription.unsubscribe();
   }, []);
+
+  if (loading) return null;
 
   return (
     <Routes>
@@ -32,7 +41,7 @@ export default function App() {
       <Route path="/register" element={<Register />} />
 
       <Route path="/" element={<ProtectedRoute session={session}><UserDashboard /></ProtectedRoute>} />
-      <Route path="/change-password" element={<ProtectedRoute session={session}><ChangePassword /></ProtectedRoute>} />
+      <Route path="/change-password" element={<ChangePassword />} />
       <Route path="/new" element={<ProtectedRoute session={session}><NewTicketWizard /></ProtectedRoute>} />
       <Route path="/profile" element={<ProtectedRoute session={session}><Profile /></ProtectedRoute>} />
       <Route path="/messages" element={<ProtectedRoute session={session}><UserMessages /></ProtectedRoute>} />

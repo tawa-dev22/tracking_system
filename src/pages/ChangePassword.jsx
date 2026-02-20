@@ -53,6 +53,11 @@ export default function ChangePassword() {
     (async () => {
       setLoadingRole(true);
       try {
+        // Give Supabase a moment to process recovery token from URL if present
+        if (window.location.hash.includes("access_token")) {
+          await new Promise(r => setTimeout(r, 500));
+        }
+
         const { data: sessData, error: sessErr } = await supabase.auth.getSession();
         const uid = sessData?.session?.user?.id;
 
