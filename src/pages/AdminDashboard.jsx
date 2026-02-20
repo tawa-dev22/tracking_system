@@ -10,10 +10,10 @@ import Button from "../Components/ui/Button";
 
 function StatCard({ label, value, hint }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur">
-      <div className="text-xs tracking-widest text-white/50">{label}</div>
-      <div className="mt-2 text-2xl font-extrabold">{value}</div>
-      {hint && <div className="mt-1 text-xs text-white/40">{hint}</div>}
+    <div className="rounded-2xl border border-black/10 bg-white p-4">
+      <div className="text-xs tracking-widest text-black/60">{label}</div>
+      <div className="mt-2 text-2xl font-extrabold text-black">{value}</div>
+      {hint && <div className="mt-1 text-xs text-black/50">{hint}</div>}
     </div>
   );
 }
@@ -75,8 +75,14 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (!uid) return;
-    refresh();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    let cancelled = false;
+    (async () => {
+      if (cancelled) return;
+      await refresh();
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [uid]);
 
   // Realtime: keep counts fresh + keep latest cards fresh
@@ -146,7 +152,10 @@ export default function AdminDashboard() {
       notificationBadge={notif.totalBadge}
       topRight={
         <div className="flex gap-2">
-          <Button variant="ghost" onClick={() => nav("/change-password", { state: { redirectTo: "/admin" } })}>
+          <Button
+            variant="ghost"
+            onClick={() => nav("/change-password", { state: { redirectTo: "/admin" } })}
+          >
             My Password
           </Button>
           <Button variant="ghost" onClick={refresh}>
@@ -155,101 +164,129 @@ export default function AdminDashboard() {
         </div>
       }
     >
-      {errMsg && (
-        <div className="rounded-2xl border border-red-400/20 bg-red-500/10 p-3 text-sm text-red-200">
-          {errMsg}
+      <div className="mt-4 grid gap-4">
+        {errMsg && (
+          <div className="rounded-2xl border border-red-400/40 bg-red-50 p-3 text-sm text-red-700">
+            {errMsg}
+          </div>
+        )}
+
+        {/* Stats */}
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <StatCard label="TOTAL USERS" value={usersCount} hint="Includes admins and users" />
+          <StatCard
+            label="ALL TICKETS"
+            value={ticketsCount}
+            hint="Updates live when a new ticket is created"
+          />
+          <StatCard label="AUDIT LOGS" value={auditCount} hint="Latest actions recorded" />
+          <StatCard
+            label="UNREAD MESSAGES"
+            value={notif.unreadMessages}
+            hint="New user messages"
+          />
         </div>
-      )}
 
-      {/* Stats */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="TOTAL USERS" value={usersCount} hint="Includes admins and users" />
-        <StatCard label="ALL TICKETS" value={ticketsCount} hint="Updates live when a new ticket is created" />
-        <StatCard label="AUDIT LOGS" value={auditCount} hint="Latest actions recorded" />
-        <StatCard label="UNREAD MESSAGES" value={notif.unreadMessages} hint="New user messages" />
-      </div>
-
-      {/* Middle */}
-      <div className="grid gap-4 mt-4 lg:grid-cols-2">
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur">
+        {/* Middle */}
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div className="rounded-2xl border border-black/10 bg-white p-4">
           <div className="flex items-center justify-between">
             <div className="font-semibold text-white/90">Latest Tickets</div>
             <button className="text-sm text-white/60 underline" onClick={() => nav("/admin/tickets")}>
               View all
             </button>
           </div>
-          <div className="mt-3 grid gap-2">
+            <div className="mt-3 grid gap-2">
             {latestTickets.map((t) => (
-              <div key={t.id} className="rounded-xl border border-white/10 bg-black/10 p-3">
-                <div className="text-sm font-semibold">
-                  {t.customer_name || "No customer"} • Order {t.order_no || "-"} • Tel {t.tel_no || "-"}
+                <div
+                  key={t.id}
+                  className="rounded-xl border border-black/10 bg-white p-3 text-sm text-black"
+                >
+                  <div className="font-semibold">
+                    {t.customer_name || "No customer"} • Order {t.order_no || "-"} • Tel{" "}
+                    {t.tel_no || "-"}
+                  </div>
+                  <div className="mt-1 text-xs text-black/60 font-mono">
+                    {t.id} • {new Date(t.created_at).toLocaleString()}
+                  </div>
                 </div>
-                <div className="mt-1 text-xs text-white/50 font-mono">
-                  {t.id} • {new Date(t.created_at).toLocaleString()}
-                </div>
-              </div>
             ))}
-            {latestTickets.length === 0 && <div className="text-sm text-white/60">No tickets yet.</div>}
+              {latestTickets.length === 0 && (
+                <div className="text-sm text-black/60">No tickets yet.</div>
+              )}
+            </div>
           </div>
-        </div>
 
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur">
+          <div className="rounded-2xl border border-black/10 bg-white p-4">
           <div className="flex items-center justify-between">
             <div className="font-semibold text-white/90">New Users</div>
             <button className="text-sm text-white/60 underline" onClick={() => nav("/admin/users")}>
               Manage
             </button>
           </div>
-          <div className="mt-3 grid gap-2">
+            <div className="mt-3 grid gap-2">
             {latestUsers.map((u) => (
-              <div key={u.id} className="rounded-xl border border-white/10 bg-black/10 p-3">
-                <div className="text-sm font-semibold">{u.full_name || u.email || u.id}</div>
-                <div className="mt-1 text-xs text-white/50">
-                  {u.email || ""} • role: {String(u.role || "user")}
+                <div
+                  key={u.id}
+                  className="rounded-xl border border-black/10 bg-white p-3 text-sm text-black"
+                >
+                  <div className="font-semibold">{u.full_name || u.email || u.id}</div>
+                  <div className="mt-1 text-xs text-black/60">
+                    {u.email || ""} • role: {String(u.role || "user")}
+                  </div>
                 </div>
-              </div>
             ))}
-            {latestUsers.length === 0 && <div className="text-sm text-white/60">No users yet.</div>}
+              {latestUsers.length === 0 && (
+                <div className="text-sm text-black/60">No users yet.</div>
+              )}
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Bottom */}
-      <div className="grid gap-4 mt-4 lg:grid-cols-3">
-        <div className="lg:col-span-2 rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur">
+        {/* Bottom */}
+        <div className="grid gap-4 lg:grid-cols-3">
+          <div className="lg:col-span-2 rounded-2xl border border-black/10 bg-white p-4">
           <div className="flex items-center justify-between">
             <div className="font-semibold text-white/90">Audit Logs</div>
             <button className="text-sm text-white/60 underline" onClick={() => nav("/admin/logs")}>
               View all
             </button>
           </div>
-          <div className="mt-3 grid gap-2">
+            <div className="mt-3 grid gap-2">
             {latestLogs.map((l) => (
-              <div key={l.id} className="rounded-xl border border-white/10 bg-black/10 p-3 text-sm">
-                <div className="text-white/80">
-                  {l.action} {l.entity} • {String(l.entity_id || "")}
+                <div
+                  key={l.id}
+                  className="rounded-xl border border-black/10 bg-white p-3 text-sm text-black"
+                >
+                  <div>
+                    {l.action} {l.entity} • {String(l.entity_id || "")}
+                  </div>
+                  <div className="mt-1 text-xs text-black/60">
+                    {new Date(l.created_at).toLocaleString()}
+                  </div>
                 </div>
-                <div className="mt-1 text-xs text-white/50">{new Date(l.created_at).toLocaleString()}</div>
-              </div>
             ))}
-            {latestLogs.length === 0 && <div className="text-sm text-white/60">No logs yet.</div>}
+              {latestLogs.length === 0 && (
+                <div className="text-sm text-black/60">No logs yet.</div>
+              )}
+            </div>
           </div>
-        </div>
 
-        <Card
-          title="Quick actions"
-          className="border-white/10 bg-white/5 text-white backdrop-blur"
-          titleClassName="text-white"
-        >
-          <div className="grid gap-2">
-            <Button onClick={() => nav("/admin/tickets")}>Open tickets</Button>
-            <Button onClick={() => nav("/admin/users")}>Manage users</Button>
-            <Button onClick={() => nav("/admin/messages")}>Open conversations</Button>
-          </div>
-          <div className="mt-3 text-xs text-white/50">
-            These sections are all wired to the system and update live via Supabase Realtime.
-          </div>
-        </Card>
+          <Card
+            title="Quick actions"
+            className="border-black/10 bg-white text-black"
+            titleClassName="text-black"
+          >
+            <div className="grid gap-2">
+              <Button onClick={() => nav("/admin/tickets")}>Open tickets</Button>
+              <Button onClick={() => nav("/admin/users")}>Manage users</Button>
+              <Button onClick={() => nav("/admin/messages")}>Open conversations</Button>
+            </div>
+            <div className="mt-3 text-xs text-black/60">
+              These sections are all wired to the system and update live via Supabase Realtime.
+            </div>
+          </Card>
+        </div>
       </div>
     </DashboardShell>
   );

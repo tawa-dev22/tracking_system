@@ -71,7 +71,7 @@ export default function Login() {
     <div className="min-h-screen bg-black/5 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <Card title="Login">
-          <form className="space-y-3" onSubmit={submit}>
+          <form className="space-y-4" onSubmit={submit}>
             <TextInput
               label="Email"
               value={email}
@@ -94,25 +94,27 @@ export default function Login() {
               }
             />
 
-            <button
-              type="button"
-              onClick={sendReset}
-              className="text-xs text-blue-700 underline text-left"
-            >
-              Forgot password?
-            </button>
+            <div className="flex items-center justify-between text-xs">
+              <button
+                type="button"
+                onClick={sendReset}
+                className="underline text-black"
+              >
+                Forgot password?
+              </button>
+
+              <span>
+                No account?{" "}
+                <Link className="underline" to="/register">
+                  Register
+                </Link>
+              </span>
+            </div>
 
             <Button type="submit">Login</Button>
 
             <p className="text-sm">{msg}</p>
             {resetMsg && <p className="text-xs mt-1">{resetMsg}</p>}
-
-            <p className="text-sm">
-              No account?{" "}
-              <Link className="underline" to="/register">
-                Register
-              </Link>
-            </p>
           </form>
         </Card>
       </div>
