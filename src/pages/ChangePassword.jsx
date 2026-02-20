@@ -1,10 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "../supabaseClient";
-
-import PageShell from "../Components/layout/PageShell";
-import Card from "../Components/ui/Card";
-import TextInput from "../Components/ui/TextInput";
 import Button from "../Components/ui/Button";
 
 function normalizeRole(r) {
@@ -46,7 +42,6 @@ export default function ChangePassword() {
   const [role, setRole] = useState("user");
   const [loadingRole, setLoadingRole] = useState(true);
 
-  // ✅ role-aware guard (used for fallback redirect)
   useEffect(() => {
     let alive = true;
 
@@ -55,7 +50,7 @@ export default function ChangePassword() {
       try {
         // Give Supabase a moment to process recovery token from URL if present
         if (window.location.hash.includes("access_token")) {
-          await new Promise(r => setTimeout(r, 500));
+          await new Promise((r) => setTimeout(r, 500));
         }
 
         const { data: sessData, error: sessErr } = await supabase.auth.getSession();
@@ -83,7 +78,6 @@ export default function ChangePassword() {
         if (!alive) return;
         setRole("user");
       } finally {
-        // ✅ no "return" in finally — just guard the state update
         if (alive) setLoadingRole(false);
       }
     })();
@@ -93,7 +87,6 @@ export default function ChangePassword() {
     };
   }, [nav]);
 
-  // ✅ redirect: explicit state wins; else role decides
   const redirectTo = useMemo(() => {
     if (location.state?.redirectTo) return location.state.redirectTo;
     return isPrivileged(role) ? "/admin" : "/";
@@ -121,94 +114,106 @@ export default function ChangePassword() {
   }
 
   return (
-    <PageShell
-      title="Change Password"
-      actions={
-        <Button
-          variant="ghost"
-          onClick={() => nav(redirectTo, { replace: true })}
-          disabled={loadingRole}
-        >
-          Back
-        </Button>
-      }
-    >
-      <Card title="Update your password">
-        <form onSubmit={save} className="grid gap-3 max-w-lg">
-          {/* New password + show/hide */}
-          <div className="grid gap-2">
-            <TextInput
-              label="New password"
-              type={show1 ? "text" : "password"}
-              value={pw1}
-              onChange={(e) => setPw1(e.target.value)}
-              placeholder="Use 12+ characters if possible"
-            />
+    <div className="min-h-screen bg-[#0f0f1a] flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        {/* Header */}
+        <div className="text-center mb-6">
+          <div className="text-3xl font-extrabold text-white">Fault Tracking</div>
+          <p className="text-white/60 text-sm mt-1">Change your password</p>
+        </div>
 
-            <div className="flex items-center justify-between gap-3">
-              <button
-                type="button"
-                className="text-sm underline"
-                onClick={() => setShow1((s) => !s)}
-              >
-                {show1 ? "Hide" : "Show"} new password
-              </button>
+        {/* Card */}
+        <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold text-white">Update Password</h2>
+            <Button
+              variant="ghost"
+              onClick={() => nav(redirectTo, { replace: true })}
+              disabled={loadingRole}
+            >
+              Back
+            </Button>
+          </div>
 
-              {strength.label && (
-                <span className="text-sm">
-                  Strength: <b>{strength.label}</b>
-                </span>
-              )}
+          <form onSubmit={save} className="grid gap-4">
+            {/* New password */}
+            <div className="grid gap-1">
+              <label className="text-sm font-medium text-white/80">New password</label>
+              <div className="relative">
+                <input
+                  type={show1 ? "text" : "password"}
+                  value={pw1}
+                  onChange={(e) => setPw1(e.target.value)}
+                  placeholder="Use 12+ characters if possible"
+                  className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 pr-16 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/20"
+                />
+                <button
+                  type="button"
+                  className="absolute inset-y-0 right-3 flex items-center text-xs text-white/60 underline"
+                  onClick={() => setShow1((s) => !s)}
+                >
+                  {show1 ? "Hide" : "Show"}
+                </button>
+              </div>
             </div>
 
-            {/* Strength bar (no hard-coded colors) */}
-            {strength.level > 0 && (
-              <div className="grid grid-cols-3 gap-2">
-                <div
-                  className={`h-2 rounded-full bg-black/20 ${
-                    strength.level >= 1 ? "opacity-100" : "opacity-30"
-                  }`}
-                />
-                <div
-                  className={`h-2 rounded-full bg-black/20 ${
-                    strength.level >= 2 ? "opacity-100" : "opacity-30"
-                  }`}
-                />
-                <div
-                  className={`h-2 rounded-full bg-black/20 ${
-                    strength.level >= 3 ? "opacity-100" : "opacity-30"
-                  }`}
-                />
+            {/* Strength indicator */}
+            {strength.label && (
+              <div className="grid gap-2">
+                <div className="flex items-center justify-between text-sm text-white/70">
+                  <span>
+                    Strength: <b>{strength.label}</b>
+                  </span>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <div
+                    className={`h-2 rounded-full ${
+                      strength.level >= 1 ? "bg-white/60" : "bg-white/20"
+                    }`}
+                  />
+                  <div
+                    className={`h-2 rounded-full ${
+                      strength.level >= 2 ? "bg-white/60" : "bg-white/20"
+                    }`}
+                  />
+                  <div
+                    className={`h-2 rounded-full ${
+                      strength.level >= 3 ? "bg-white/60" : "bg-white/20"
+                    }`}
+                  />
+                </div>
+                {strength.hint && <p className="text-xs text-white/50">{strength.hint}</p>}
               </div>
             )}
 
-            {strength.hint && <p className="text-xs text-black/60">{strength.hint}</p>}
-          </div>
+            {/* Confirm password */}
+            <div className="grid gap-1">
+              <label className="text-sm font-medium text-white/80">Confirm new password</label>
+              <div className="relative">
+                <input
+                  type={show2 ? "text" : "password"}
+                  value={pw2}
+                  onChange={(e) => setPw2(e.target.value)}
+                  className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 pr-16 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/20"
+                />
+                <button
+                  type="button"
+                  className="absolute inset-y-0 right-3 flex items-center text-xs text-white/60 underline"
+                  onClick={() => setShow2((s) => !s)}
+                >
+                  {show2 ? "Hide" : "Show"}
+                </button>
+              </div>
+            </div>
 
-          {/* Confirm password + show/hide */}
-          <div className="grid gap-2">
-            <TextInput
-              label="Confirm new password"
-              type={show2 ? "text" : "password"}
-              value={pw2}
-              onChange={(e) => setPw2(e.target.value)}
-            />
-            <button
-              type="button"
-              className="text-sm underline w-fit"
-              onClick={() => setShow2((s) => !s)}
-            >
-              {show2 ? "Hide" : "Show"} confirm password
-            </button>
-          </div>
+            <Button type="submit" disabled={loadingRole}>
+              Save Password
+            </Button>
 
-          <Button type="submit" disabled={loadingRole}>
-            Save
-          </Button>
-
-          {msg && <p className="text-sm">{msg}</p>}
-        </form>
-      </Card>
-    </PageShell>
+            {msg && <p className="text-sm text-white/80">{msg}</p>}
+          </form>
+        </div>
+      </div>
+    </div>
   );
 }

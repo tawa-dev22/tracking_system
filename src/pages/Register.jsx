@@ -1,8 +1,6 @@
 import { useState } from "react";
 import { supabase } from "../supabaseClient";
 import { useNavigate, Link } from "react-router-dom";
-import Card from "../Components/ui/Card";
-import TextInput from "../Components/ui/TextInput";
 import Button from "../Components/ui/Button";
 
 export default function Register() {
@@ -34,41 +32,88 @@ export default function Register() {
   }
 
   return (
-    <div className="min-h-screen bg-black/5 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[#0f0f1a] flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <Card title="Create account">
-          <form className="space-y-3" onSubmit={submit}>
-            <TextInput label="Full name" value={fullName} onChange={(e)=>setFullName(e.target.value)} />
-            <TextInput label="Email" value={email} onChange={(e)=>setEmail(e.target.value)} />
+        {/* Logo / title */}
+        <div className="text-center mb-6">
+          <div className="text-3xl font-extrabold text-white">Fault Tracking</div>
+          <p className="text-white/60 text-sm mt-1">Create a new account</p>
+        </div>
 
-            <TextInput
-              label="Password"
-              type={show ? "text" : "password"}
-              value={pw}
-              onChange={(e)=>setPw(e.target.value)}
-              rightSlot={
-                <button type="button" className="text-xs underline" onClick={()=>setShow(s=>!s)}>
+        {/* Card */}
+        <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur p-6">
+          <h2 className="text-lg font-bold text-white mb-4">Register</h2>
+
+          <form className="space-y-4" onSubmit={submit}>
+            {/* Full name */}
+            <div className="grid gap-1">
+              <label className="text-sm font-medium text-white/80">Full name</label>
+              <input
+                type="text"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/20"
+                placeholder="John Doe"
+              />
+            </div>
+
+            {/* Email */}
+            <div className="grid gap-1">
+              <label className="text-sm font-medium text-white/80">Email</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/20"
+                placeholder="you@example.com"
+              />
+            </div>
+
+            {/* Password */}
+            <div className="grid gap-1">
+              <label className="text-sm font-medium text-white/80">Password</label>
+              <div className="relative">
+                <input
+                  type={show ? "text" : "password"}
+                  value={pw}
+                  onChange={(e) => setPw(e.target.value)}
+                  className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 pr-16 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/20"
+                  placeholder="••••••••"
+                />
+                <button
+                  type="button"
+                  className="absolute inset-y-0 right-3 flex items-center text-xs text-white/60 underline"
+                  onClick={() => setShow((s) => !s)}
+                >
                   {show ? "Hide" : "Show"}
                 </button>
-              }
-            />
+              </div>
+            </div>
 
-            <TextInput
-              label="Confirm password"
-              type={show ? "text" : "password"}
-              value={pw2}
-              onChange={(e)=>setPw2(e.target.value)}
-            />
+            {/* Confirm password */}
+            <div className="grid gap-1">
+              <label className="text-sm font-medium text-white/80">Confirm password</label>
+              <input
+                type={show ? "text" : "password"}
+                value={pw2}
+                onChange={(e) => setPw2(e.target.value)}
+                className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/20"
+                placeholder="••••••••"
+              />
+            </div>
 
             <Button type="submit">Register</Button>
-            <p className="text-sm">{msg}</p>
 
-            <p className="text-sm">
+            {msg && <p className="text-sm text-white/80">{msg}</p>}
+
+            <p className="text-sm text-white/60">
               Already have an account?{" "}
-              <Link className="underline" to="/login">Login</Link>
+              <Link className="underline hover:text-white" to="/login">
+                Login
+              </Link>
             </p>
           </form>
-        </Card>
+        </div>
       </div>
     </div>
   );

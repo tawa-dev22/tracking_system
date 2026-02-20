@@ -1,8 +1,6 @@
 import { useState } from "react";
 import { supabase } from "../supabaseClient";
 import { useNavigate, Link } from "react-router-dom";
-import Card from "../Components/ui/Card";
-import TextInput from "../Components/ui/TextInput";
 import Button from "../Components/ui/Button";
 
 export default function Login() {
@@ -68,44 +66,65 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-black/5 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[#0f0f1a] flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <Card title="Login">
-          <form className="space-y-4" onSubmit={submit}>
-            <TextInput
-              label="Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
+        {/* Logo / title */}
+        <div className="text-center mb-6">
+          <div className="text-3xl font-extrabold text-white">Fault Tracking</div>
+          <p className="text-white/60 text-sm mt-1">Sign in to your account</p>
+        </div>
 
-            <TextInput
-              label="Password"
-              type={show ? "text" : "password"}
-              value={pw}
-              onChange={(e) => setPw(e.target.value)}
-              rightSlot={
+        {/* Card */}
+        <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur p-6">
+          <h2 className="text-lg font-bold text-white mb-4">Login</h2>
+
+          <form className="space-y-4" onSubmit={submit}>
+            {/* Email */}
+            <div className="grid gap-1">
+              <label className="text-sm font-medium text-white/80">Email</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/20"
+                placeholder="you@example.com"
+              />
+            </div>
+
+            {/* Password */}
+            <div className="grid gap-1">
+              <label className="text-sm font-medium text-white/80">Password</label>
+              <div className="relative">
+                <input
+                  type={show ? "text" : "password"}
+                  value={pw}
+                  onChange={(e) => setPw(e.target.value)}
+                  className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 pr-16 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/20"
+                  placeholder="••••••••"
+                />
                 <button
                   type="button"
-                  className="text-xs underline"
+                  className="absolute inset-y-0 right-3 flex items-center text-xs text-white/60 underline"
                   onClick={() => setShow((s) => !s)}
                 >
                   {show ? "Hide" : "Show"}
                 </button>
-              }
-            />
+              </div>
+            </div>
 
-            <div className="flex items-center justify-between text-xs">
+            {/* Links row */}
+            <div className="flex items-center justify-between text-xs text-white/60">
               <button
                 type="button"
                 onClick={sendReset}
-                className="underline text-black"
+                className="underline hover:text-white"
               >
                 Forgot password?
               </button>
 
               <span>
                 No account?{" "}
-                <Link className="underline" to="/register">
+                <Link className="underline hover:text-white" to="/register">
                   Register
                 </Link>
               </span>
@@ -113,10 +132,10 @@ export default function Login() {
 
             <Button type="submit">Login</Button>
 
-            <p className="text-sm">{msg}</p>
-            {resetMsg && <p className="text-xs mt-1">{resetMsg}</p>}
+            {msg && <p className="text-sm text-white/80">{msg}</p>}
+            {resetMsg && <p className="text-xs text-white/60">{resetMsg}</p>}
           </form>
-        </Card>
+        </div>
       </div>
     </div>
   );
