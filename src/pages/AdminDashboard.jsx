@@ -191,8 +191,8 @@ export default function AdminDashboard() {
         <div className="grid gap-4 lg:grid-cols-2">
           <div className="rounded-2xl border border-black/10 bg-white p-4">
           <div className="flex items-center justify-between">
-            <div className="font-semibold text-white/90">Latest Tickets</div>
-            <button className="text-sm text-white/60 underline" onClick={() => nav("/admin/tickets")}>
+            <div className="font-semibold text-black/90">Latest Tickets</div>
+            <button className="text-sm text-black/60 underline" onClick={() => nav("/admin/tickets")}>
               View all
             </button>
           </div>
@@ -219,8 +219,8 @@ export default function AdminDashboard() {
 
           <div className="rounded-2xl border border-black/10 bg-white p-4">
           <div className="flex items-center justify-between">
-            <div className="font-semibold text-white/90">New Users</div>
-            <button className="text-sm text-white/60 underline" onClick={() => nav("/admin/users")}>
+            <div className="font-semibold text-black/90">New Users</div>
+            <button className="text-sm text-black/60 underline" onClick={() => nav("/admin/users")}>
               Manage
             </button>
           </div>
@@ -247,8 +247,8 @@ export default function AdminDashboard() {
         <div className="grid gap-4 lg:grid-cols-3">
           <div className="lg:col-span-2 rounded-2xl border border-black/10 bg-white p-4">
           <div className="flex items-center justify-between">
-            <div className="font-semibold text-white/90">Audit Logs</div>
-            <button className="text-sm text-white/60 underline" onClick={() => nav("/admin/logs")}>
+            <div className="font-semibold text-black/90">Audit Logs</div>
+            <button className="text-sm text-black/60 underline" onClick={() => nav("/admin/logs")}>
               View all
             </button>
           </div>

@@ -75,7 +75,7 @@ export default function AdminHome() {
         <Card title="Audit Logs">
           <p className="text-sm text-black/70">Track actions performed in the system.</p>
           <div className="mt-3">
-            <Button onClick={() => nav("/admin/audit")}>Open</Button>
+            <Button onClick={() => nav("/admin/logs")}>Open</Button>
           </div>
         </Card>
       </div>
