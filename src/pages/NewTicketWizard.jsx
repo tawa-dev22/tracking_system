@@ -38,6 +38,7 @@ export default function NewTicketWizard() {
 
   const [docs, setDocs] = useState([]);
   const [uploading, setUploading] = useState(false);
+  const progressPercent = ((step + 1) / steps.length) * 100;
 
   const [form, setForm] = useState({
     // Header
@@ -173,6 +174,19 @@ export default function NewTicketWizard() {
 
   return (
     <PageShell title="New Form (Step-by-step)" actions={actions}>
+      <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-sm font-medium text-white">Progress</span>
+          <span className="text-xs text-white/60">{step + 1} of {steps.length}</span>
+        </div>
+        <div className="w-full bg-white/10 rounded-full h-2 overflow-hidden">
+          <div
+            className="bg-gradient-to-r from-blue-500 to-purple-500 h-full transition-all duration-300 ease-out"
+            style={{ width: `${progressPercent}%` }}
+          />
+        </div>
+      </div>
+
       <div className="grid gap-4">
         <Card>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

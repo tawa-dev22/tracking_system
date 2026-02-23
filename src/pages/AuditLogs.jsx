@@ -33,7 +33,7 @@ export default function AuditLogs() {
 
       const logsRes = await supabase
         .from("audit_logs")
-        .select("id, created_at, actor, action, entity, entity_id")
+        .select("id, created_at, actor, action, entity, entity_id, profiles(full_name, email)")
         .order("created_at", { ascending: false })
         .limit(200);
 
@@ -97,14 +97,30 @@ export default function AuditLogs() {
           className="border-white/10 bg-white/5 text-white backdrop-blur"
           titleClassName="text-white"
         >
-          <ul className="text-sm list-disc pl-6 text-white/80">
-            {logs.map((l) => (
-              <li key={l.id}>
-                {new Date(l.created_at).toLocaleString()} — {l.action} {l.entity} —{" "}
-                {String(l.entity_id || "")}
-              </li>
-            ))}
-          </ul>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="text-left border-b border-white/10 text-white/70">
+                <tr>
+                  <th className="py-2 px-2">Date & Time</th>
+                  <th className="py-2 px-2">Actor</th>
+                  <th className="py-2 px-2">Action</th>
+                  <th className="py-2 px-2">Entity</th>
+                  <th className="py-2 px-2">Entity ID</th>
+                </tr>
+              </thead>
+              <tbody className="text-white/80">
+                {logs.map((l) => (
+                  <tr key={l.id} className="border-b border-white/5 hover:bg-white/5">
+                    <td className="py-2 px-2">{new Date(l.created_at).toLocaleString()}</td>
+                    <td className="py-2 px-2 font-medium">{l.profiles?.full_name || l.actor || "-"}</td>
+                    <td className="py-2 px-2">{l.action}</td>
+                    <td className="py-2 px-2">{l.entity}</td>
+                    <td className="py-2 px-2 font-mono text-xs">{String(l.entity_id || "-")}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </Card>
       )}
     </DashboardShell>

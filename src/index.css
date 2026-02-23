@@ -1,6 +1,44 @@
 @import "tailwindcss";
 
 @theme {
-  --color-BLUE: #1e40af;
-  --color-DARKGRAY: #374151;
+  /* Dark theme colors from reference image */
+  --color-BLUE: #0f172a;
+  --color-DARKGRAY: #1e293b;
+  --color-PRIMARY: #a78bfa;
+  --color-ACCENT: #8b5cf6;
+  --color-SECONDARY: #6366f1;
+  --color-CHART: #7c3aed;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  background-color: #0f172a;
+  color: #f1f5f9;
+}
+
+/* Smooth transitions for interactive elements */
+button, input, select, textarea {
+  transition: all 0.2s ease-in-out;
+}
+
+/* Custom scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
 }

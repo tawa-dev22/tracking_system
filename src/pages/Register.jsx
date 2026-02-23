@@ -10,6 +10,7 @@ export default function Register() {
   const [pw, setPw] = useState("");
   const [pw2, setPw2] = useState("");
   const [show, setShow] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [msg, setMsg] = useState("");
 
   async function submit(e) {
@@ -93,13 +94,22 @@ export default function Register() {
             {/* Confirm password */}
             <div className="grid gap-1">
               <label className="text-sm font-medium text-white/80">Confirm password</label>
-              <input
-                type={show ? "text" : "password"}
-                value={pw2}
-                onChange={(e) => setPw2(e.target.value)}
-                className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/20"
-                placeholder="••••••••"
-              />
+              <div className="relative">
+                <input
+                  type={showConfirm ? "text" : "password"}
+                  value={pw2}
+                  onChange={(e) => setPw2(e.target.value)}
+                  className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 pr-16 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/20"
+                  placeholder="••••••••"
+                />
+                <button
+                  type="button"
+                  className="absolute inset-y-0 right-3 flex items-center text-xs text-white/60 underline"
+                  onClick={() => setShowConfirm((s) => !s)}
+                >
+                  {showConfirm ? "Hide" : "Show"}
+                </button>
+              </div>
             </div>
 
             <Button type="submit" className="bg-white text-BLUE hover:bg-white/90">Register</Button>

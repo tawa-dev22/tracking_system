@@ -71,16 +71,17 @@ export default function DashboardShell({
             <div className="flex items-center gap-3">
               <Avatar name={profile?.full_name || profile?.email} src={profile?.avatarUrl} size={36} />
               <div className="min-w-0">
-                <div className="text-sm font-semibold truncate">
+                <div className="text-sm font-bold truncate text-white">
                   {profile?.full_name || profile?.email || "Account"}
                 </div>
                 <div className="text-xs text-white/50 truncate">{profile?.email || ""}</div>
               </div>
               <button
-                className="ml-auto text-xs text-white/70 hover:text-white underline"
+                className="ml-auto text-xs text-white/70 hover:text-white hover:bg-white/10 rounded px-2 py-1 transition"
                 onClick={logout}
+                title="Logout"
               >
-                Logout
+                ✕
               </button>
             </div>
           </div>

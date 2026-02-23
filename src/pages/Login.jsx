@@ -10,6 +10,7 @@ export default function Login() {
   const [show, setShow] = useState(false);
   const [msg, setMsg] = useState("");
   const [resetMsg, setResetMsg] = useState("");
+  const [selectedRole, setSelectedRole] = useState("user");
 
   async function submit(e) {
     e.preventDefault();
@@ -38,8 +39,13 @@ export default function Login() {
       .single();
 
     const role = String(profile?.role || "user").toLowerCase();
+    const isPrivileged = role === "admin" || role === "superuser";
 
-    if (role === "admin" || role === "superuser") {
+    if (selectedRole === "admin" && !isPrivileged) {
+      return setMsg("Admin login requires admin privileges");
+    }
+
+    if (isPrivileged && selectedRole === "admin") {
       nav("/admin");
     } else {
       nav("/");
@@ -110,6 +116,19 @@ export default function Login() {
                   {show ? "Hide" : "Show"}
                 </button>
               </div>
+            </div>
+
+            {/* Role selection */}
+            <div className="grid gap-1">
+              <label className="text-sm font-medium text-white/80">Login as</label>
+              <select
+                value={selectedRole}
+                onChange={(e) => setSelectedRole(e.target.value)}
+                className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-white/20"
+              >
+                <option value="user">Regular User</option>
+                <option value="admin">Admin</option>
+              </select>
             </div>
 
             {/* Links row */}
