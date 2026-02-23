@@ -1,22 +1,20 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabaseClient";
-import useSessionProfile from "../hooks/useSessionProfile";
-import useRealtimeNotifications from "../hooks/useRealtimeNotifications";
-import { getAvatarUrlFromPath } from "../lib/avatar";
+import useAdminGuard from "../admin/useAdminGuard";
+import useRealtimeProfiles from "../hooks/useRealtimeProfiles";
 
-import DashboardShell from "../Components/layout/DashboardShell";
+import PageShell from "../Components/layout/PageShell";
 import Card from "../Components/ui/Card";
 import TextInput from "../Components/ui/TextInput";
 import Button from "../Components/ui/Button";
 
 export default function UsersAdmin() {
   const nav = useNavigate();
-  const { loading: guardLoading, session, profile, privileged, err: guardErr } = useSessionProfile();
-  const uid = session?.user?.id;
+  const { loading: guardLoading, isPrivileged, errMsg: guardErr } = useAdminGuard();
 
-  const avatarUrl = useMemo(() => getAvatarUrlFromPath(profile?.avatar_path), [profile?.avatar_path]);
-  const notif = useRealtimeNotifications({ userId: uid, isAdmin: true });
+  // Realtime profiles hook (banner + toast/log)
+  const { newUsers, isConnected } = useRealtimeProfiles();
 
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState([]);
@@ -25,47 +23,52 @@ export default function UsersAdmin() {
   const [newPw, setNewPw] = useState("");
   const [msg, setMsg] = useState("");
   const [errMsg, setErrMsg] = useState("");
-  const [refreshKey, setRefreshKey] = useState(0);
 
-  const [newUserEmail, setNewUserEmail] = useState("");
-  const [newUserPassword, setNewUserPassword] = useState("");
-  const [newUserFullName, setNewUserFullName] = useState("");
-  const [newUserRole, setNewUserRole] = useState("user");
+  // ✅ init memoized and safe (no underline / no stale updates)
+  const init = useCallback(async (signal) => {
+    setLoading(true);
+    setErrMsg("");
+    setMsg("");
 
-  const [editRole, setEditRole] = useState("");
-  const [editFullName, setEditFullName] = useState("");
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("id, full_name, email, role, created_at")
+      .order("created_at", { ascending: false });
+
+    // If component unmounted or effect was cleaned up, don't set state
+    if (signal?.aborted) return;
+
+    if (error) {
+      setErrMsg("Users query error: " + error.message);
+      setUsers([]);
+    } else {
+      setUsers(data || []);
+    }
+
+    setLoading(false);
+  }, []); // supabase is a module singleton, safe to keep deps empty
 
   useEffect(() => {
-    if (guardLoading || !privileged) return;
+    if (guardLoading || !isPrivileged) return;
 
-    let cancelled = false;
+    const controller = new AbortController();
+    init(controller.signal);
 
-    (async () => {
-      setLoading(true);
-      setErrMsg("");
-      setMsg("");
+    return () => controller.abort();
+  }, [guardLoading, isPrivileged, init]);
 
-      const usersRes = await supabase
-        .from("profiles")
-        .select("id, full_name, email, role, created_at, avatar_path")
-        .order("created_at", { ascending: false });
+  // Show notification when new users join
+  useEffect(() => {
+    if (newUsers?.length > 0) {
+      console.log(`${newUsers.length} new user(s) joined`);
+      // Replace with your toast lib if you want:
+      // toast.info(`${newUsers.length} new user(s) joined`);
+    }
+  }, [newUsers]);
 
-      if (cancelled) return;
-
-      if (usersRes.error) setErrMsg("Users query error: " + usersRes.error.message);
-      setUsers(usersRes.data || []);
-      setLoading(false);
-    })();
-
-    return () => { cancelled = true; };
-  }, [guardLoading, privileged, refreshKey]);
-
-  function refresh() {
-    setRefreshKey((k) => k + 1);
-  }
-
-  async function resetUserPassword() {
+  const resetUserPassword = useCallback(async () => {
     setMsg("");
+
     if (!selectedUserId) return setMsg("❌ Select a user");
     if (newPw.length < 6) return setMsg("❌ Password must be at least 6 chars");
 
@@ -73,6 +76,12 @@ export default function UsersAdmin() {
 
     const { data: sess } = await supabase.auth.getSession();
     const token = sess?.session?.access_token;
+
+    if (!token) {
+      setMsg("❌ Missing session token. Please log in again.");
+      nav("/login", { replace: true });
+      return;
+    }
 
     const res = await fetch(
       `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-reset-password`,
@@ -86,139 +95,103 @@ export default function UsersAdmin() {
       }
     );
 
-    const out = await res.json();
+    let out = {};
+    try {
+      out = await res.json();
+    } catch {
+      out = {};
+    }
+
     if (!res.ok) return setMsg("❌ " + (out.error || "Failed"));
 
     setMsg("✅ Password reset successfully");
     setNewPw("");
-    refresh();
+    setSelectedUserId("");
+
+    // refresh list
+    init();
+  }, [selectedUserId, newPw, init, nav]);
+
+  if (guardLoading) {
+    return (
+      <PageShell title="Admin • Users">
+        <Card title="Loading...">Please wait.</Card>
+      </PageShell>
+    );
   }
 
-  async function createUser() {
-    setMsg("");
-    if (!newUserEmail.trim()) return setMsg("❌ Email required");
-    if (newUserPassword.length < 6) return setMsg("❌ Password must be at least 6 chars");
-
-    const { data: sess } = await supabase.auth.getSession();
-    const token = sess?.session?.access_token;
-
-    if (!token) return setMsg("❌ Missing session token");
-
-    // This requires an Edge Function using the Supabase service role key.
-    // If you don't have it yet, you'll see an error until you deploy it.
-    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-create-user`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        email: newUserEmail.trim(),
-        password: newUserPassword,
-        full_name: newUserFullName.trim(),
-        role: newUserRole,
-      }),
-    });
-
-    const out = await res.json().catch(() => ({}));
-    if (!res.ok) return setMsg("❌ " + (out.error || "Create user failed (deploy admin-create-user Edge Function)"));
-
-    setMsg("✅ User created");
-    setNewUserEmail("");
-    setNewUserPassword("");
-    setNewUserFullName("");
-    setNewUserRole("user");
-    refresh();
-  }
-
-  async function saveProfileEdits() {
-    setMsg("");
-    if (!selectedUserId) return setMsg("❌ Select a user");
-
-    const upd = await supabase
-      .from("profiles")
-      .update({
-        role: editRole || undefined,
-        full_name: editFullName || undefined,
-      })
-      .eq("id", selectedUserId);
-
-    if (upd.error) return setMsg("❌ " + upd.error.message);
-    setMsg("✅ User profile updated");
-    refresh();
-  }
-
-  useEffect(() => {
-    const u = users.find((x) => x.id === selectedUserId);
-    setEditRole(String(u?.role || "user").toLowerCase());
-    setEditFullName(u?.full_name || "");
-  }, [selectedUserId, users]);
-
-  // Realtime: when a profile is created, refresh the list quickly
-  useEffect(() => {
-    if (!uid || !privileged) return;
-    const ch = supabase.channel("admin-users");
-    ch.on("postgres_changes", { event: "INSERT", schema: "public", table: "profiles" }, () => refresh());
-    ch.on("postgres_changes", { event: "UPDATE", schema: "public", table: "profiles" }, () => refresh());
-    ch.subscribe();
-    return () => supabase.removeChannel(ch);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [uid, privileged]);
-
-  if (guardLoading) return null;
-  if (!privileged) {
-    nav("/");
-    return null;
+  if (!isPrivileged) {
+    return (
+      <PageShell title="Admin • Users">
+        <Card title="Access denied">
+          ❌ You are not allowed to access this page.
+          {guardErr && <p className="mt-2 text-sm text-red-600">{guardErr}</p>}
+        </Card>
+        <Button variant="ghost" onClick={() => nav("/")}>
+          Go to Dashboard
+        </Button>
+      </PageShell>
+    );
   }
 
   return (
-    <DashboardShell
-      title="Users"
-      subtitle="Create and manage user accounts"
-      items={[
-        { to: "/admin", label: "Dashboard", icon: "🏠" },
-        { to: "/admin/tickets", label: "All Tickets", icon: "🎫", badge: notif.newTickets || 0 },
-        { to: "/admin/logs", label: "Audit Logs", icon: "🧾" },
-        { to: "/admin/users", label: "Users", icon: "👥", badge: notif.newUsers || 0 },
-        { to: "/admin/messages", label: "Conversations", icon: "💬", badge: notif.unreadMessages || 0 },
-      ]}
-      profile={{ ...profile, avatarUrl }}
-      notificationBadge={notif.totalBadge}
-      topRight={
-        <div className="flex gap-2">
-          <Button variant="ghost" onClick={() => nav("/change-password", { state: { redirectTo: "/admin/users" } })}>
+    <PageShell
+      title="Admin • Users"
+      actions={
+        <div className="flex items-center gap-2">
+          {/* Live indicator */}
+          <div className="flex items-center gap-2 text-xs mr-2">
+            <div
+              className={`w-2 h-2 rounded-full ${
+                isConnected ? "bg-green-500" : "bg-red-500"
+              }`}
+            />
+            <span className="text-white/60">
+              {isConnected ? "Live" : "Offline"}
+            </span>
+          </div>
+
+          <Button variant="ghost" onClick={() => nav("/admin")}>
+            Back
+          </Button>
+
+          <Button
+            variant="ghost"
+            onClick={() =>
+              nav("/change-password", { state: { redirectTo: "/admin/users" } })
+            }
+          >
             My Password
           </Button>
-          <Button variant="ghost" onClick={refresh}>
+
+          <Button variant="ghost" onClick={() => init()}>
             Refresh
           </Button>
         </div>
       }
     >
+      {/* Banner for new users */}
+      {newUsers?.length > 0 && (
+        <div className="rounded-2xl border border-blue-400/20 bg-blue-500/10 p-3 text-sm text-blue-200 mb-3">
+          {newUsers.length} new user{newUsers.length !== 1 ? "s" : ""} joined.
+          Refresh to see them.
+        </div>
+      )}
+
       {(guardErr || errMsg) && (
-        <div className="rounded-2xl border border-red-400/20 bg-red-500/10 p-3 text-sm text-red-200">
-          {guardErr || errMsg}
-        </div>
+        <Card title="Notice">
+          <p className="text-sm text-red-600">{guardErr || errMsg}</p>
+        </Card>
       )}
 
-      {msg && (
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-3 text-sm text-white/80">
-          {msg}
-        </div>
-      )}
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card
-          title={`All Users (${users.length})`}
-          className="border-white/10 bg-white/5 text-white backdrop-blur"
-          titleClassName="text-white"
-        >
-          {loading ? (
-            <div className="text-sm text-white/60">Loading…</div>
-          ) : (
+      {loading ? (
+        <Card title="Loading users...">Please wait.</Card>
+      ) : (
+        <div className="grid gap-4 mt-4">
+          <Card title={`Users (${users.length})`}>
             <div className="overflow-auto">
               <table className="w-full text-sm">
-                <thead className="text-left border-b border-white/10 text-white/70">
+                <thead className="text-left border-b">
                   <tr>
                     <th className="py-2">Name</th>
                     <th>Email</th>
@@ -226,9 +199,9 @@ export default function UsersAdmin() {
                     <th>User ID</th>
                   </tr>
                 </thead>
-                <tbody className="text-white/80">
+                <tbody>
                   {users.map((u) => (
-                    <tr key={u.id} className="border-b border-white/5">
+                    <tr key={u.id} className="border-b">
                       <td className="py-2">{u.full_name || "-"}</td>
                       <td>{u.email || "-"}</td>
                       <td>{u.role}</td>
@@ -238,64 +211,14 @@ export default function UsersAdmin() {
                 </tbody>
               </table>
             </div>
-          )}
-        </Card>
-
-        <div className="grid gap-4">
-          <Card
-            title="Create new user"
-            className="border-white/10 bg-white/5 text-white backdrop-blur"
-            titleClassName="text-white"
-          >
-            <div className="grid gap-3">
-              <TextInput
-                label="Full name"
-                value={newUserFullName}
-                onChange={(e) => setNewUserFullName(e.target.value)}
-                inputClassName="bg-white/5 border-white/10 text-white placeholder:text-white/40 focus:ring-violet-500/40"
-              />
-              <TextInput
-                label="Email"
-                value={newUserEmail}
-                onChange={(e) => setNewUserEmail(e.target.value)}
-                inputClassName="bg-white/5 border-white/10 text-white placeholder:text-white/40 focus:ring-violet-500/40"
-              />
-              <TextInput
-                label="Password"
-                type="password"
-                value={newUserPassword}
-                onChange={(e) => setNewUserPassword(e.target.value)}
-                inputClassName="bg-white/5 border-white/10 text-white placeholder:text-white/40 focus:ring-violet-500/40"
-              />
-              <div className="grid gap-1">
-                <label className="text-sm font-medium">Role</label>
-                <select
-                  value={newUserRole}
-                  onChange={(e) => setNewUserRole(e.target.value)}
-                  className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-violet-500/40"
-                >
-                  <option value="user">user</option>
-                  <option value="admin">admin</option>
-                  <option value="superuser">superuser</option>
-                </select>
-              </div>
-              <Button onClick={createUser}>Create user</Button>
-              <div className="text-xs text-white/50">
-                Note: this calls the Edge Function <code>admin-create-user</code> (needs to be deployed).
-              </div>
-            </div>
           </Card>
 
-          <Card
-            title="Edit user profile / reset password"
-            className="border-white/10 bg-white/5 text-white backdrop-blur"
-            titleClassName="text-white"
-          >
-            <div className="grid gap-3">
+          <Card title="Reset a user's password">
+            <div className="grid gap-3 max-w-xl">
               <div className="grid gap-1">
                 <label className="text-sm font-medium">Select user</label>
                 <select
-                  className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-violet-500/40"
+                  className="w-full rounded-xl border border-black/15 px-3 py-2"
                   value={selectedUserId}
                   onChange={(e) => setSelectedUserId(e.target.value)}
                 >
@@ -309,47 +232,22 @@ export default function UsersAdmin() {
               </div>
 
               <TextInput
-                label="Full name"
-                value={editFullName}
-                onChange={(e) => setEditFullName(e.target.value)}
-                inputClassName="bg-white/5 border-white/10 text-white placeholder:text-white/40 focus:ring-violet-500/40"
-              />
-
-              <div className="grid gap-1">
-                <label className="text-sm font-medium">Role</label>
-                <select
-                  value={editRole}
-                  onChange={(e) => setEditRole(e.target.value)}
-                  className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-violet-500/40"
-                >
-                  <option value="user">user</option>
-                  <option value="admin">admin</option>
-                  <option value="superuser">superuser</option>
-                </select>
-              </div>
-
-              <Button variant="ghost" onClick={saveProfileEdits}>
-                Save profile changes
-              </Button>
-
-              <div className="h-px bg-white/10 my-1" />
-
-              <TextInput
                 label="New password"
                 type="password"
                 value={newPw}
                 onChange={(e) => setNewPw(e.target.value)}
                 placeholder="Min 6 chars"
-                inputClassName="bg-white/5 border-white/10 text-white placeholder:text-white/40 focus:ring-violet-500/40"
               />
 
               <Button variant="danger" onClick={resetUserPassword}>
                 Reset Password
               </Button>
+
+              {msg && <p className="text-sm">{msg}</p>}
             </div>
           </Card>
         </div>
-      </div>
-    </DashboardShell>
+      )}
+    </PageShell>
   );
 }

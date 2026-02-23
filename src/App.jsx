@@ -8,51 +8,89 @@ import Register from "./pages/Register";
 import UserDashboard from "./pages/UserDashboard";
 import ChangePassword from "./pages/ChangePassword";
 import NewTicketWizard from "./pages/NewTicketWizard";
-import AdminDashboard from "./pages/AdminDashboard";
+import { RealtimeProvider } from './contexts/RealtimeContext';
+// ✅ replace old AdminDashboard usage with the new pages
 import AdminHome from "./pages/AdminHome";
+import UsersAdmin from "./pages/UsersAdmin";
 import AllTickets from "./pages/AllTickets";
 import AuditLogs from "./pages/AuditLogs";
-import UsersAdmin from "./pages/UsersAdmin";
-import Profile from "./pages/Profile";
-import AdminMessages from "./pages/AdminMessages";
-import UserMessages from "./pages/UserMessages";
 
 export default function App() {
   const [session, setSession] = useState(null);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      setLoading(false);
-    });
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
-      setSession(s);
-      setLoading(false);
-    });
+    supabase.auth.getSession().then(({ data }) => setSession(data.session));
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
     return () => sub.subscription.unsubscribe();
   }, []);
 
-  if (loading) return null;
-
   return (
+    <RealtimeProvider>
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
 
-      <Route path="/" element={<ProtectedRoute session={session}><UserDashboard /></ProtectedRoute>} />
-      <Route path="/change-password" element={<ChangePassword />} />
-      <Route path="/new" element={<ProtectedRoute session={session}><NewTicketWizard /></ProtectedRoute>} />
-      <Route path="/profile" element={<ProtectedRoute session={session}><Profile /></ProtectedRoute>} />
-      <Route path="/messages" element={<ProtectedRoute session={session}><UserMessages /></ProtectedRoute>} />
-      
-      {/* Admin Routes */}
-      <Route path="/admin" element={<ProtectedRoute session={session}><AdminDashboard /></ProtectedRoute>} />
-      <Route path="/admin/home" element={<ProtectedRoute session={session}><AdminHome /></ProtectedRoute>} />
-      <Route path="/admin/tickets" element={<ProtectedRoute session={session}><AllTickets /></ProtectedRoute>} />
-      <Route path="/admin/logs" element={<ProtectedRoute session={session}><AuditLogs /></ProtectedRoute>} />
-      <Route path="/admin/users" element={<ProtectedRoute session={session}><UsersAdmin /></ProtectedRoute>} />
-      <Route path="/admin/messages" element={<ProtectedRoute session={session}><AdminMessages /></ProtectedRoute>} />
+      <Route
+        path="/"
+        element={
+          <ProtectedRoute session={session}>
+            <UserDashboard />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/change-password"
+        element={
+          <ProtectedRoute session={session}>
+            <ChangePassword />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/new"
+        element={
+          <ProtectedRoute session={session}>
+            <NewTicketWizard />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* ✅ Admin routes */}
+      <Route
+        path="/admin"
+        element={
+          <ProtectedRoute session={session}>
+            <AdminHome />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/users"
+        element={
+          <ProtectedRoute session={session}>
+            <UsersAdmin />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/tickets"
+        element={
+          <ProtectedRoute session={session}>
+            <AllTickets />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/audit"
+        element={
+          <ProtectedRoute session={session}>
+            <AuditLogs />
+          </ProtectedRoute>
+        }
+      />
     </Routes>
+    </RealtimeProvider>
   );
 }
