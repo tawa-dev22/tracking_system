@@ -13,7 +13,7 @@ function NavItem({ to, label, icon, badge }) {
         <span className="font-medium">{label}</span>
       </span>
       {badge ? (
-        <span className="min-w-6 h-6 px-2 grid place-items-center rounded-full bg-violet-500/90 text-xs font-bold text-white">
+        <span className="min-w-6 h-6 px-2 grid place-items-center rounded-full bg-white/20 text-xs font-bold text-white">
           {badge}
         </span>
       ) : null}
@@ -44,14 +44,14 @@ export default function DashboardShell({
   }
 
   return (
-    <div className="min-h-screen bg-[#07070c] text-white">
-      <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(800px_circle_at_40%_0%,rgba(139,92,246,0.22),transparent_55%),radial-gradient(600px_circle_at_90%_10%,rgba(59,130,246,0.12),transparent_50%)]" />
+    <div className="min-h-screen bg-BLUE text-white">
+      <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(800px_circle_at_40%_0%,rgba(255,255,255,0.1),transparent_55%)]" />
 
       <div className="relative grid min-h-screen grid-cols-1 lg:grid-cols-[280px_1fr]">
         {/* Sidebar */}
-        <aside className="hidden lg:flex flex-col border-r border-white/10 bg-black/20 backdrop-blur-xl">
+        <aside className="hidden lg:flex flex-col border-r border-white/10 bg-black/10 backdrop-blur-xl">
           <div className="p-5 flex items-center gap-3">
-            <div className="size-9 rounded-xl bg-gradient-to-tr from-violet-500 to-fuchsia-500" />
+            <div className="size-9 rounded-xl bg-white/20" />
             <div>
               <div className="text-sm font-bold tracking-wide">{appName}</div>
               <div className="text-xs text-white/60">{menuTitle}</div>
@@ -115,7 +115,7 @@ export default function DashboardShell({
                   <span className="text-white/80">🔔</span>
                   <span className="hidden sm:inline">Notifications</span>
                   {notificationBadge ? (
-                    <span className="absolute -top-2 -right-2 size-5 grid place-items-center rounded-full bg-violet-500 text-xs font-bold">
+                    <span className="absolute -top-2 -right-2 size-5 grid place-items-center rounded-full bg-white/20 text-xs font-bold">
                       {notificationBadge > 9 ? "9+" : notificationBadge}
                     </span>
                   ) : null}
@@ -132,4 +132,3 @@ export default function DashboardShell({
     </div>
   );
 }
-

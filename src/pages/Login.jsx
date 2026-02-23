@@ -66,7 +66,7 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0f0f1a] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-BLUE flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Logo / title */}
         <div className="text-center mb-6">
@@ -130,7 +130,7 @@ export default function Login() {
               </span>
             </div>
 
-            <Button type="submit">Login</Button>
+            <Button type="submit" className="bg-white text-BLUE hover:bg-white/90">Login</Button>
 
             {msg && <p className="text-sm text-white/80">{msg}</p>}
             {resetMsg && <p className="text-xs text-white/60">{resetMsg}</p>}

@@ -32,7 +32,7 @@ export default function Register() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0f0f1a] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-BLUE flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Logo / title */}
         <div className="text-center mb-6">
@@ -102,7 +102,7 @@ export default function Register() {
               />
             </div>
 
-            <Button type="submit">Register</Button>
+            <Button type="submit" className="bg-white text-BLUE hover:bg-white/90">Register</Button>
 
             {msg && <p className="text-sm text-white/80">{msg}</p>}
 
