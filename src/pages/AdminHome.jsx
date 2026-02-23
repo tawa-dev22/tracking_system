@@ -1,5 +1,4 @@
 import { useNavigate } from "react-router-dom";
-import { supabase } from "../supabaseClient";
 import useAdminGuard from "../admin/useAdminGuard";
 
 import PageShell from "../Components/layout/PageShell";
@@ -9,11 +8,6 @@ import Button from "../Components/ui/Button";
 export default function AdminHome() {
   const nav = useNavigate();
   const { loading, errMsg, isPrivileged } = useAdminGuard();
-
-  async function logout() {
-    await supabase.auth.signOut();
-    nav("/login");
-  }
 
   if (loading) {
     return (
@@ -44,9 +38,6 @@ export default function AdminHome() {
             onClick={() => nav("/change-password", { state: { redirectTo: "/admin" } })}
           >
             My Password
-          </Button>
-          <Button variant="ghost" onClick={logout}>
-            Logout
           </Button>
         </>
       }
