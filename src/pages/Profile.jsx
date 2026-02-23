@@ -109,7 +109,7 @@ export default function Profile() {
                 accept="image/*"
                 disabled={uploading}
                 onChange={(e) => onPickAvatar(e.target.files?.[0])}
-                className="text-sm"
+                className="text-sm text-black"
               />
               {uploading && <div className="text-xs text-white/60">Uploading...</div>}
             </div>

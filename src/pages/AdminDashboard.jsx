@@ -10,7 +10,7 @@ import Button from "../Components/ui/Button";
 
 function StatCard({ label, value, hint }) {
   return (
-    <div className="rounded-2xl border border-black/10 bg-white p-4">
+    <div className="rounded-2xl border border-black/10 bg-white p-4 text-black">
       <div className="text-xs tracking-widest text-black/60">{label}</div>
       <div className="mt-2 text-2xl font-extrabold text-black">{value}</div>
       {hint && <div className="mt-1 text-xs text-black/50">{hint}</div>}
@@ -189,7 +189,7 @@ export default function AdminDashboard() {
 
         {/* Middle */}
         <div className="grid gap-4 lg:grid-cols-2">
-          <div className="rounded-2xl border border-black/10 bg-white p-4">
+          <div className="rounded-2xl border border-black/10 bg-white p-4 text-black">
           <div className="flex items-center justify-between">
             <div className="font-semibold text-black/90">Latest Tickets</div>
             <button className="text-sm text-black/60 underline" onClick={() => nav("/admin/tickets")}>
@@ -217,7 +217,7 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-black/10 bg-white p-4">
+          <div className="rounded-2xl border border-black/10 bg-white p-4 text-black">
           <div className="flex items-center justify-between">
             <div className="font-semibold text-black/90">New Users</div>
             <button className="text-sm text-black/60 underline" onClick={() => nav("/admin/users")}>
@@ -245,7 +245,7 @@ export default function AdminDashboard() {
 
         {/* Bottom */}
         <div className="grid gap-4 lg:grid-cols-3">
-          <div className="lg:col-span-2 rounded-2xl border border-black/10 bg-white p-4">
+          <div className="lg:col-span-2 rounded-2xl border border-black/10 bg-white p-4 text-black">
           <div className="flex items-center justify-between">
             <div className="font-semibold text-black/90">Audit Logs</div>
             <button className="text-sm text-black/60 underline" onClick={() => nav("/admin/logs")}>

@@ -112,7 +112,7 @@ export default function Register() {
               </div>
             </div>
 
-            <Button type="submit" className="bg-white text-BLUE hover:bg-white/90">Register</Button>
+            <Button type="submit" className="bg-white text-black hover:bg-white/90">Register</Button>
 
             {msg && <p className="text-sm text-white/80">{msg}</p>}
 

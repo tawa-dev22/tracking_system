@@ -218,7 +218,7 @@ export default function UsersAdmin() {
               <div className="grid gap-1">
                 <label className="text-sm font-medium">Select user</label>
                 <select
-                  className="w-full rounded-xl border border-black/15 px-3 py-2"
+                  className="w-full rounded-xl border border-black/15 px-3 py-2 text-black"
                   value={selectedUserId}
                   onChange={(e) => setSelectedUserId(e.target.value)}
                 >

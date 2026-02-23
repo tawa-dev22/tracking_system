@@ -313,7 +313,7 @@ export default function NewTicketWizard() {
               </p>
 
               <input
-                className="block w-full text-sm"
+                className="block w-full text-sm text-black"
                 type="file"
                 multiple
                 onChange={(e) => setDocs(Array.from(e.target.files || []))}

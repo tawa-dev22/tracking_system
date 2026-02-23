@@ -132,7 +132,7 @@ export default function Login() {
               </span>
             </div>
 
-            <Button type="submit" className="bg-white text-BLUE hover:bg-white/90">Login</Button>
+            <Button type="submit" className="bg-white text-black hover:bg-white/90">Login</Button>
 
             {msg && <p className="text-sm text-white/80">{msg}</p>}
             {resetMsg && <p className="text-xs text-white/60">{resetMsg}</p>}

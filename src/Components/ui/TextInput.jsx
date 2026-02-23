@@ -19,7 +19,7 @@ const TextInput = ({
           onChange={onChange}
           placeholder={placeholder}
           required={required}
-          className={`w-full rounded-xl border border-black/15 bg-white px-3 py-2 pr-12
+          className={`w-full rounded-xl border border-black/15 bg-white px-3 py-2 pr-12 text-black
             focus:outline-none focus:ring-2 focus:ring-black/20 ${inputClassName}`}
         />
         {rightSlot && (

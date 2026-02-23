@@ -11,7 +11,7 @@ const StepTabs = ({ steps, current, onSelect }) => {
             type="button"
             onClick={() => onSelect(idx)}
             className={`px-3 py-2 rounded-xl text-sm border transition
-              ${active ? "bg-black text-white border-black" : "bg-white border-black/15 hover:bg-black/5"}`}
+              ${active ? "bg-black text-white border-black" : "bg-white text-black border-black/15 hover:bg-black/5"}`}
           >
             {idx + 1}. {s}
           </button>
