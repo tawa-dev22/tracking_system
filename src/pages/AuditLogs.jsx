@@ -41,7 +41,7 @@ export default function AuditLogs() {
       const logsRes = await supabase
         .from("audit_logs")
         .select(
-          "id, created_at, actor, action, entity, entity_id, profiles(full_name, email)"
+          "id, created_at, actor, action, entity, entity_id, actor_profile:profiles!audit_logs_actor_fkey(full_name, email)"
         )
         .order("created_at", { ascending: false })
         .limit(200);
@@ -169,7 +169,7 @@ export default function AuditLogs() {
                       {new Date(l.created_at).toLocaleString()}
                     </td>
                     <td className="py-2 px-2 font-medium">
-                      {l.profiles?.full_name || l.actor || "-"}
+                      {l.actor_profile?.full_name || l.actor || "-"}
                     </td>
                     <td className="py-2 px-2">{l.action}</td>
                     <td className="py-2 px-2">{l.entity}</td>

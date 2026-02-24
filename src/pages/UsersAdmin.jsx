@@ -152,7 +152,10 @@ export default function UsersAdmin() {
           </div>
 
           <Button variant="ghost" onClick={() => nav("/admin")}>
-            Back
+            Dashboard
+          </Button>
+          <Button variant="ghost" onClick={() => nav("/admin/logs")}>
+            Audit Logs
           </Button>
 
           <Button

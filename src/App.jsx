@@ -83,7 +83,7 @@ export default function App() {
         }
       />
       <Route
-        path="/admin/audit"
+        path="/admin/logs"
         element={
           <ProtectedRoute session={session}>
             <AuditLogs />
