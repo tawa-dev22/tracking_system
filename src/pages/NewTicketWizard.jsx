@@ -29,7 +29,7 @@ function ProcessRow({ label, value, onChange }) {
 
 export default function NewTicketWizard() {
   const nav = useNavigate();
-  const steps = useMemo(() => ["Header", "Details", "Process", "Customer", "Uploads"], []);
+  const steps = useMemo(() => ["Header", "Details", "Process", "Customer", "Preview & Save", "Uploads"], []);
   const [step, setStep] = useState(0);
 
   const [saving, setSaving] = useState(false);
@@ -194,9 +194,6 @@ export default function NewTicketWizard() {
             <div className="flex gap-2 flex-wrap">
               <Button variant="ghost" onClick={back} disabled={step === 0}>Back</Button>
               <Button variant="ghost" onClick={next} disabled={step === steps.length - 1}>Next</Button>
-              <Button onClick={saveTicket} disabled={saving}>
-                {saving ? "Saving..." : (ticketId ? "Saved ✅" : "Save")}
-              </Button>
             </div>
           </div>
 
@@ -304,8 +301,51 @@ export default function NewTicketWizard() {
           </Section>
         )}
 
-        {/* STEP 5 */}
+        {/* STEP 5 - Preview & Save */}
         {step === 4 && (
+          <Section title="Preview & Confirm">
+            <div className="grid gap-4">
+              <p className="text-sm text-black/70">Review all the information below before saving. Click <b>Save Ticket</b> to submit.</p>
+              <div className="rounded-xl border border-black/10 bg-white p-4 grid gap-3 text-sm">
+                <div className="font-bold text-base border-b pb-2">Header</div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div><span className="text-black/50">Date Received:</span> {form.date_received || "-"}</div>
+                  <div><span className="text-black/50">Time Received:</span> {form.time_received || "-"}</div>
+                  <div><span className="text-black/50">Faults Man:</span> {form.faults_man || "-"}</div>
+                  <div><span className="text-black/50">Type:</span> {[form.transfer&&"TRANSFER",form.tr&&"TR",form.adsl&&"ADSL",form.voice&&"VOICE"].filter(Boolean).join(", ") || "-"}</div>
+                </div>
+                <div className="font-bold text-base border-b pb-2 mt-2">Details</div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div><span className="text-black/50">Tel No:</span> {form.tel_no || "-"}</div>
+                  <div><span className="text-black/50">Order No:</span> {form.order_no || "-"}</div>
+                  <div><span className="text-black/50">SPV:</span> {form.spv || "-"}</div>
+                  <div><span className="text-black/50">Exchange:</span> {form.exchange || "-"}</div>
+                </div>
+                <div className="font-bold text-base border-b pb-2 mt-2">Customer</div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div><span className="text-black/50">Customer Name:</span> {form.customer_name || "-"}</div>
+                  <div><span className="text-black/50">Customer Address:</span> {form.customer_address || "-"}</div>
+                  <div><span className="text-black/50">Cabinet Name:</span> {form.cabinet_name || "-"}</div>
+                  <div><span className="text-black/50">DP Name:</span> {form.dp_name || "-"}</div>
+                </div>
+              </div>
+              {ticketId ? (
+                <div className="rounded-xl border border-green-400/40 bg-green-50 p-3 text-sm text-green-800">
+                  ✅ Ticket saved! ID: <span className="font-mono font-bold">{ticketId}</span><br />
+                  Proceed to the next step to upload documents.
+                </div>
+              ) : (
+                <Button onClick={saveTicket} disabled={saving}>
+                  {saving ? "Saving..." : "Save Ticket"}
+                </Button>
+              )}
+              {msg && <p className="text-sm">{msg}</p>}
+            </div>
+          </Section>
+        )}
+
+        {/* STEP 6 - Uploads */}
+        {step === 5 && (
           <Section title="Upload documents">
             <div className="grid gap-3 max-w-xl">
               <p className="text-sm">

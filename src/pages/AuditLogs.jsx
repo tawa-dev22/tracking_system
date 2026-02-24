@@ -22,7 +22,7 @@ export default function AuditLogs() {
   );
 
   const notif = useRealtimeNotifications({ userId: uid, isAdmin: true });
-  const { newLogs, isConnected } = useRealtimeAuditLogs();
+  const { newLogs } = useRealtimeAuditLogs();
 
   const [loading, setLoading] = useState(true);
   const [logs, setLogs] = useState([]);
@@ -88,28 +88,11 @@ export default function AuditLogs() {
           icon: "👥",
           badge: notif.newUsers || 0,
         },
-        {
-          to: "/admin/messages",
-          label: "Conversations",
-          icon: "💬",
-          badge: notif.unreadMessages || 0,
-        },
       ]}
       profile={{ ...profile, avatarUrl }}
       notificationBadge={notif.totalBadge}
       topRight={
         <div className="flex gap-2 items-center">
-          {/* Connection status indicator */}
-          <div
-            className={`w-2 h-2 rounded-full ${
-              isConnected ? "bg-green-500" : "bg-red-500"
-            }`}
-          />
-          <span className="text-xs text-white/60">
-            {isConnected ? "Live" : "Offline"}
-          </span>
-
-          {/* Existing buttons */}
           <Button
             variant="ghost"
             onClick={() =>
@@ -153,10 +136,9 @@ export default function AuditLogs() {
               <thead className="text-left border-b border-white/10 text-white/70">
                 <tr>
                   <th className="py-2 px-2">Date & Time</th>
-                  <th className="py-2 px-2">Actor</th>
+                  <th className="py-2 px-2">User</th>
                   <th className="py-2 px-2">Action</th>
-                  <th className="py-2 px-2">Entity</th>
-                  <th className="py-2 px-2">Entity ID</th>
+                  <th className="py-2 px-2">Details</th>
                 </tr>
               </thead>
               <tbody className="text-white/80">
@@ -169,12 +151,22 @@ export default function AuditLogs() {
                       {new Date(l.created_at).toLocaleString()}
                     </td>
                     <td className="py-2 px-2 font-medium">
-                      {l.actor_profile?.full_name || l.actor || "-"}
+                      {l.actor_profile?.full_name || l.actor_profile?.email || l.actor || "-"}
                     </td>
-                    <td className="py-2 px-2">{l.action}</td>
-                    <td className="py-2 px-2">{l.entity}</td>
-                    <td className="py-2 px-2 font-mono text-xs">
-                      {String(l.entity_id || "-")}
+                    <td className="py-2 px-2">
+                      <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${
+                        l.action === "USER_LOGIN" ? "bg-green-500/20 text-green-300" :
+                        l.action === "USER_LOGOUT" ? "bg-orange-500/20 text-orange-300" :
+                        l.action?.includes("DELETE") ? "bg-red-500/20 text-red-300" :
+                        l.action?.includes("CREATE") || l.action?.includes("INSERT") ? "bg-blue-500/20 text-blue-300" :
+                        l.action?.includes("UPDATE") ? "bg-yellow-500/20 text-yellow-300" :
+                        "bg-white/10 text-white/70"
+                      }`}>
+                        {l.action}
+                      </span>
+                    </td>
+                    <td className="py-2 px-2 text-white/60 text-xs">
+                      {l.entity}{l.entity_id ? ` • ${String(l.entity_id).slice(0, 8)}...` : ""}
                     </td>
                   </tr>
                 ))}

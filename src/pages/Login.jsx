@@ -3,6 +3,19 @@ import { supabase } from "../supabaseClient";
 import { useNavigate, Link } from "react-router-dom";
 import Button from "../Components/ui/Button";
 
+async function logAuditEvent(userId, action, entity, entityId) {
+  try {
+    await supabase.from("audit_logs").insert({
+      actor: userId,
+      action,
+      entity,
+      entity_id: entityId,
+    });
+  } catch (e) {
+    console.warn("Audit log failed:", e);
+  }
+}
+
 export default function Login() {
   const nav = useNavigate();
   const [email, setEmail] = useState("");
@@ -40,11 +53,23 @@ export default function Login() {
     const role = String(profile?.role || "user").toLowerCase();
     const isPrivileged = role === "admin" || role === "superuser";
 
-    // Auto-detect and redirect based on user role
-    if (isPrivileged) {
-      nav("/admin");
+    // Log login event to audit log
+    await logAuditEvent(uid, "USER_LOGIN", "auth", uid);
+
+    // Persist last route for session resume
+    sessionStorage.setItem("last_route", isPrivileged ? "/admin" : "/");
+    sessionStorage.setItem("user_role", role);
+
+    // Resume from where the user was before session expired
+    const savedRedirect = sessionStorage.getItem("redirect_after_login");
+    sessionStorage.removeItem("redirect_after_login");
+
+    if (savedRedirect && savedRedirect !== "/login") {
+      nav(savedRedirect, { replace: true });
+    } else if (isPrivileged) {
+      nav("/admin", { replace: true });
     } else {
-      nav("/");
+      nav("/", { replace: true });
     }
   }
 

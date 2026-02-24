@@ -108,20 +108,6 @@ export default function DashboardShell({
                   <span>Profile</span>
                 </Link>
 
-                <Link
-                  to={profile?.role === "admin" || profile?.role === "superuser" ? "/admin/messages" : "/messages"}
-                  className="relative flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm hover:bg-white/10"
-                  title="Notifications"
-                >
-                  <span className="text-white/80">🔔</span>
-                  <span className="hidden sm:inline">Notifications</span>
-                  {notificationBadge ? (
-                    <span className="absolute -top-2 -right-2 size-5 grid place-items-center rounded-full bg-white/20 text-xs font-bold">
-                      {notificationBadge > 9 ? "9+" : notificationBadge}
-                    </span>
-                  ) : null}
-                </Link>
-
                 {topRight}
 
                 <button
