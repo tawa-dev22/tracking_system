@@ -9,7 +9,7 @@ BEGIN
             created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
             created_by UUID REFERENCES auth.users(id) ON DELETE CASCADE,
             date DATE DEFAULT CURRENT_DATE,
-            username TEXT,
+            client_number TEXT,
             order_number TEXT,
             olt_exchange TEXT,
             job_received_by TEXT,
