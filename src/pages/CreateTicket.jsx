@@ -1,16 +1,21 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "../supabaseClient";
 import { useNavigate } from "react-router-dom";
+import useSessionProfile from "../hooks/useSessionProfile";
+import { getAvatarUrlFromPath } from "../lib/avatar";
 
 import PageShell from "../Components/layout/PageShell";
 import Card from "../Components/ui/Card";
-import Section from "../Components/ui/Section";
 import TextInput from "../Components/ui/TextInput";
 import SelectInput from "../Components/ui/SelectInput";
 import Button from "../Components/ui/Button";
 
 export default function CreateTicket() {
   const nav = useNavigate();
+  const { loading, session, profile } = useSessionProfile();
+  const uid = session?.user?.id;
+  const avatarUrl = useMemo(() => getAvatarUrlFromPath(profile?.avatar_path), [profile?.avatar_path]);
+  
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
 
@@ -26,6 +31,13 @@ export default function CreateTicket() {
     installation_migration: "",
     time_taken: "",
   });
+
+  // Autofill "done_by" with user's full name on component mount or when profile loads
+  useEffect(() => {
+    if (profile?.full_name) {
+      setForm(prev => ({ ...prev, done_by: profile.full_name }));
+    }
+  }, [profile?.full_name]);
 
   const set = (k, v) => setForm((p) => ({ ...p, [k]: v }));
 
@@ -45,8 +57,6 @@ export default function CreateTicket() {
     const payload = { 
       ...form, 
       created_by: user.id,
-      // Map to existing schema if needed, or use new fields
-      // For now, we'll assume the tickets table will be updated to match these fields
     };
 
     const { error } = await supabase
@@ -66,6 +76,8 @@ export default function CreateTicket() {
   const actions = (
     <Button variant="ghost" onClick={() => nav("/")}>Back to Dashboard</Button>
   );
+
+  if (loading) return null;
 
   return (
     <PageShell title="Create Ticket" actions={actions}>
@@ -125,6 +137,7 @@ export default function CreateTicket() {
               label="DONE BY" 
               value={form.done_by} 
               onChange={(e) => set("done_by", e.target.value)} 
+              placeholder="Auto-filled with your name"
               required 
             />
 
