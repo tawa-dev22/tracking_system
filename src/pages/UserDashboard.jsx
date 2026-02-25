@@ -62,6 +62,7 @@ export default function UserDashboard() {
   const items = [
     { to: "/", label: "Dashboard", icon: "🏠" },
     { to: "/new", label: "New Ticket", icon: "➕" },
+    { to: "/reports", label: "Reports", icon: "📊" },
   ];
 
   if (loading) return null;

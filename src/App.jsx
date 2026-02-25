@@ -7,7 +7,8 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import UserDashboard from "./pages/UserDashboard";
 import ChangePassword from "./pages/ChangePassword";
-import NewTicketWizard from "./pages/NewTicketWizard";
+import CreateTicket from "./pages/CreateTicket";
+import Reports from "./pages/Reports";
 import { RealtimeProvider } from "./contexts/RealtimeContext";
 import AdminHome from "./pages/AdminHome";
 import UsersAdmin from "./pages/UsersAdmin";
@@ -64,7 +65,15 @@ export default function App() {
           path="/new"
           element={
             <ProtectedRoute session={session} sessionLoading={sessionLoading}>
-              <NewTicketWizard />
+              <CreateTicket />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/reports"
+          element={
+            <ProtectedRoute session={session} sessionLoading={sessionLoading}>
+              <Reports />
             </ProtectedRoute>
           }
         />

@@ -69,6 +69,13 @@ export default function AdminHome() {
             <Button onClick={() => nav("/admin/logs")}>Open</Button>
           </div>
         </Card>
+
+        <Card title="Reports">
+          <p className="text-sm text-black/70">Extract PDF reports with filters.</p>
+          <div className="mt-3">
+            <Button onClick={() => nav("/reports")}>Open</Button>
+          </div>
+        </Card>
       </div>
     </PageShell>
   );
