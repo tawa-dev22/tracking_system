@@ -18,6 +18,8 @@ export default function CreateTicket() {
   
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewTimestamp, setPreviewTimestamp] = useState(null);
 
   const [form, setForm] = useState({
     date: new Date().toISOString().split("T")[0],
@@ -41,8 +43,28 @@ export default function CreateTicket() {
 
   const set = (k, v) => setForm((p) => ({ ...p, [k]: v }));
 
+  // Validate form before preview
+  const validateForm = () => {
+    const requiredFields = ["date", "username", "order_number", "olt_exchange", "job_received_by", "received_from", "done_by", "faults_type", "installation_migration", "time_taken"];
+    const emptyFields = requiredFields.filter(field => !form[field]);
+    
+    if (emptyFields.length > 0) {
+      setMsg(`❌ Please fill all required fields: ${emptyFields.join(", ")}`);
+      return false;
+    }
+    return true;
+  };
+
+  const handlePreview = () => {
+    if (!validateForm()) return;
+    setPreviewTimestamp(new Date());
+    setShowPreview(true);
+  };
+
   async function handleSubmit(e) {
     e.preventDefault();
+    if (!validateForm()) return;
+
     setSaving(true);
     setMsg("Saving ticket...");
 
@@ -79,9 +101,79 @@ export default function CreateTicket() {
 
   if (loading) return null;
 
+  // Field display labels mapping
+  const fieldLabels = {
+    date: "DATE",
+    username: "USERNAME",
+    order_number: "ORDER NUMBER",
+    olt_exchange: "OLT / EXCHANGE",
+    job_received_by: "JOB RECEIVED BY EMAIL OR PHONE",
+    received_from: "RECEIVED FROM",
+    done_by: "DONE BY",
+    faults_type: "FAULTS ADSL / GPON",
+    installation_migration: "INSTALLATION / MIGRATION",
+    time_taken: "TIME TAKEN",
+  };
+
   return (
     <PageShell title="Create Ticket" actions={actions}>
-      <form onSubmit={handleSubmit} className="grid gap-6">
+      {/* Preview Modal */}
+      {showPreview && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <div className="w-full max-w-3xl rounded-2xl border border-white/10 bg-[#1a1a2e] p-6 overflow-auto max-h-[90vh]">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-white">Ticket Preview</h2>
+              <button 
+                onClick={() => setShowPreview(false)} 
+                className="text-white/60 hover:text-white text-2xl"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* System Generated Fields */}
+            <div className="mb-6 p-4 rounded-xl bg-blue-500/10 border border-blue-500/20">
+              <h3 className="text-sm font-semibold text-blue-300 mb-3">System Generated Information</h3>
+              <div className="grid gap-3 text-sm text-white/80">
+                <div>
+                  <span className="text-white/50 text-xs uppercase tracking-wide">Date Submitted</span>
+                  <br />
+                  <span className="text-white font-semibold">{previewTimestamp?.toLocaleString()}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Form Fields Preview */}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {Object.entries(form).map(([key, value]) => (
+                <div key={key} className="p-3 rounded-lg bg-white/5 border border-white/10">
+                  <span className="text-xs font-semibold text-white/60 uppercase tracking-wide">{fieldLabels[key]}</span>
+                  <p className="mt-2 text-sm text-white font-medium break-words">{value || "—"}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Preview Actions */}
+            <div className="mt-8 flex gap-3 justify-end">
+              <Button 
+                variant="ghost" 
+                onClick={() => setShowPreview(false)}
+              >
+                Edit Form
+              </Button>
+              <Button 
+                onClick={handleSubmit}
+                disabled={saving}
+              >
+                {saving ? "Submitting..." : "Confirm & Submit"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Main Form */}
+      <form onSubmit={(e) => { e.preventDefault(); handlePreview(); }} className="grid gap-6">
         <Card title="Ticket Information">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             <TextInput 
@@ -92,7 +184,7 @@ export default function CreateTicket() {
               required 
             />
             <TextInput 
-              label="CLIENT NUMBER" 
+              label="USERNAME" 
               value={form.username} 
               onChange={(e) => set("username", e.target.value)} 
               required 
@@ -178,9 +270,16 @@ export default function CreateTicket() {
             </div>
           )}
 
-          <div className="mt-6 flex justify-end">
-            <Button type="submit" disabled={saving}>
-              {saving ? "Saving..." : "Submit Ticket"}
+          <div className="mt-6 flex justify-end gap-3">
+            <Button 
+              variant="ghost" 
+              onClick={() => nav("/")}
+              type="button"
+            >
+              Cancel
+            </Button>
+            <Button type="submit">
+              Preview & Continue
             </Button>
           </div>
         </Card>
