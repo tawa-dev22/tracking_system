@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { Mail, User, Shield, Calendar } from 'lucide-react';
+import { supabase } from "@/lib/supabase";
 
 export default function Profile() {
   const { user, loading } = useAuth();
@@ -16,7 +17,7 @@ export default function Profile() {
   });
   const [isSaving, setIsSaving] = useState(false);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
@@ -27,8 +28,17 @@ export default function Profile() {
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      // TODO: Call tRPC procedure to update profile
-      // const result = await trpc.users.updateProfile.useMutation();
+      if (!supabase || !user?.id) {
+        throw new Error("Supabase not configured or user missing");
+      }
+      const { error } = await supabase
+        .from("users")
+        .update({
+          name: formData.name,
+          email: formData.email,
+        })
+        .eq("id", user.id);
+      if (error) throw error;
       
       toast.success('Profile updated successfully');
       setIsEditing(false);

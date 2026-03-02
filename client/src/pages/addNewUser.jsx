@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { ArrowLeft } from 'lucide-react';
+import { createUser } from "@/lib/users";
 
 export default function AddNewUser() {
   const [, navigate] = useNavigate();
@@ -56,14 +57,18 @@ export default function AddNewUser() {
         return;
       }
 
-      // TODO: Call tRPC procedure to create user
-      // const result = await trpc.users.create.useMutation();
+      const { error } = await createUser({
+        name: formData.name,
+        email: formData.email,
+        role: formData.role,
+      });
+      if (error) throw error;
       
       toast.success('User created successfully');
       navigate('/admin/users');
     } catch (error) {
       console.error('Error creating user:', error);
-      toast.error(error.message || 'Failed to create user');
+      toast.error((error && error.message) || 'Failed to create user');
     } finally {
       setIsLoading(false);
     }

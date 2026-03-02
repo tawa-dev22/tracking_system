@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { trpc } from '@/lib/trpc';
+import { useQuery } from "@tanstack/react-query";
+import { listUsers } from "@/lib/users";
 import { toast } from 'sonner';
 import { Search, Plus, MoreVertical } from 'lucide-react';
 import {
@@ -18,11 +19,21 @@ import UserManageModal from './UserManageModal';
 export default function UserListPreview() {
   const [, navigate] = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedUser, setSelectedUser] = useState<typeof allUsers[0] | null>(null);
+  const [selectedUser, setSelectedUser] = useState(null);
   const [showManageModal, setShowManageModal] = useState(false);
 
-  // Fetch all users
-  const { data: allUsers = [], isLoading, refetch } = trpc.users.list.useQuery();
+  const { data: allUsers = [], isLoading, refetch } = useQuery({
+    queryKey: ["users", "list"],
+    queryFn: async () => {
+      const { data, error } = await listUsers();
+      if (error) {
+        toast.error("Failed to load users");
+        console.error(error);
+        return [];
+      }
+      return data;
+    },
+  });
 
   // Filter users based on search query
   const filteredUsers = useMemo(() => {
@@ -35,7 +46,7 @@ export default function UserListPreview() {
     );
   }, [allUsers, searchQuery]);
 
-  const handleManageClick = (user: typeof allUsers[0]) => {
+  const handleManageClick = (user) => {
     setSelectedUser(user);
     setShowManageModal(true);
   };

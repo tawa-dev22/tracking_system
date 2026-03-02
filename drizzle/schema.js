@@ -25,8 +25,7 @@ export const users = mysqlTable("users", {
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
 });
 
-export type User = typeof users.$inferSelect;
-export type InsertUser = typeof users.$inferInsert;
+// Types removed for JS-only runtime
 
 export const passwordResetLogs = mysqlTable("passwordResetLogs", {
   id: int("id").autoincrement().primaryKey(),
@@ -38,5 +37,4 @@ export const passwordResetLogs = mysqlTable("passwordResetLogs", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
-export type PasswordResetLog = typeof passwordResetLogs.$inferSelect;
-export type InsertPasswordResetLog = typeof passwordResetLogs.$inferInsert;
+// Types removed for JS-only runtime

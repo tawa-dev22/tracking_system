@@ -5,13 +5,9 @@ import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { ArrowLeft, Eye, EyeOff } from 'lucide-react';
+import { supabase } from "@/lib/supabase";
 
-interface PasswordResetPageProps {
-  userId?: number;
-  token?: string;
-}
-
-export default function PasswordReset({ userId, token }: PasswordResetPageProps) {
+export default function PasswordReset() {
   const [, navigate] = useLocation();
   const [formData, setFormData] = useState({
     newPassword: '',
@@ -22,14 +18,11 @@ export default function PasswordReset({ userId, token }: PasswordResetPageProps)
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    // Validate that we have both userId and token
-    if (!userId || !token) {
-      toast.error('Invalid password reset link');
-      navigate('/admin/users');
-    }
-  }, [userId, token, navigate]);
+    // In Supabase, after clicking the email link, the session will include a reset flow.
+    // We keep this page as a simple password update form.
+  }, []);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
@@ -37,7 +30,7 @@ export default function PasswordReset({ userId, token }: PasswordResetPageProps)
     }));
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
 
@@ -61,14 +54,19 @@ export default function PasswordReset({ userId, token }: PasswordResetPageProps)
         return;
       }
 
-      // TODO: Call tRPC procedure to reset password
-      // const result = await trpc.users.confirmPasswordReset.useMutation();
+      if (!supabase) {
+        throw new Error("Supabase not configured");
+      }
+      const { error } = await supabase.auth.updateUser({
+        password: formData.newPassword,
+      });
+      if (error) throw error;
 
       toast.success('Password reset successfully');
       navigate('/admin/users');
     } catch (error) {
       console.error('Error resetting password:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to reset password');
+      toast.error(error?.message || 'Failed to reset password');
     } finally {
       setIsLoading(false);
     }

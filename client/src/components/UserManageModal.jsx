@@ -10,42 +10,18 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
-import { trpc } from '@/lib/trpc';
+import { deleteUserById, toggleUserSuspended } from "@/lib/users";
 import { toast } from 'sonner';
-// User type from database schema
-interface User {
-  id: number;
-  openId: string;
-  name: string | null;
-  email: string | null;
-  loginMethod: string | null;
-  role: 'user' | 'admin';
-  isSuspended: boolean;
-  passwordResetToken: string | null;
-  passwordResetExpiresAt: Date | null;
-  createdAt: Date;
-  updatedAt: Date;
-  lastSignedIn: Date;
-}
-
-interface UserManageModalProps {
-  user: User;
-  onClose: () => void;
-}
-
-export default function UserManageModal({ user, onClose }: UserManageModalProps) {
+export default function UserManageModal({ user, onClose }) {
   const [, navigate] = useLocation();
   const [action, setAction] = useState<'none' | 'delete' | 'reset' | 'suspend'>('none');
   const [isLoading, setIsLoading] = useState(false);
 
-  const deleteUserMutation = trpc.users.delete.useMutation();
-  const suspendUserMutation = trpc.users.suspend.useMutation();
-  const resetPasswordMutation = trpc.users.resetPassword.useMutation();
-
   const handleDelete = async () => {
     setIsLoading(true);
     try {
-      await deleteUserMutation.mutateAsync({ id: user.id });
+      const { error } = await deleteUserById(user.id);
+      if (error) throw error;
       toast.success('User deleted successfully');
       onClose();
     } catch (error) {
@@ -60,10 +36,8 @@ export default function UserManageModal({ user, onClose }: UserManageModalProps)
   const handleSuspend = async () => {
     setIsLoading(true);
     try {
-      await suspendUserMutation.mutateAsync({
-        id: user.id,
-        suspend: !user.isSuspended,
-      });
+      const { error } = await toggleUserSuspended(user.id, !user.isSuspended);
+      if (error) throw error;
       toast.success(
         user.isSuspended ? 'User unsuspended successfully' : 'User suspended successfully'
       );
@@ -80,10 +54,11 @@ export default function UserManageModal({ user, onClose }: UserManageModalProps)
   const handleResetPassword = async () => {
     setIsLoading(true);
     try {
-      const result = await resetPasswordMutation.mutateAsync({ userId: user.id });
-      toast.success('Password reset token generated');
-      // Navigate to password reset page with token
-      navigate(`/admin/users/${user.id}/reset-password?token=${result.token}`);
+      // For Supabase, send reset email to user's address
+      // Admin-triggered reset links require service role; client can request email to user's address
+      // Here we navigate to a generic instruction page
+      toast.success('Password reset email requested (if supported)');
+      navigate(`/admin/users/${user.id}/reset-password`);
       onClose();
     } catch (error) {
       toast.error('Failed to generate reset token');

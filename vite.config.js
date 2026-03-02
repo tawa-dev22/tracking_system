@@ -148,7 +148,13 @@ function vitePluginManusDebugCollector() {
   };
 }
 
-const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector()];
+const plugins = [react({
+  babel: {
+    plugins: [
+      ["@babel/plugin-transform-typescript", { isTSX: true, allExtensions: true }],
+    ],
+  },
+}), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector()];
 
 export default defineConfig({
   plugins,
