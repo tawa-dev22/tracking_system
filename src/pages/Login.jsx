@@ -60,7 +60,7 @@ export default function Login() {
     sessionStorage.setItem("last_route", isPrivileged ? "/admin" : "/");
     sessionStorage.setItem("user_role", role);
 
-    // Resume from where the user was before session expired
+    // Resume from where the user w
     const savedRedirect = sessionStorage.getItem("redirect_after_login");
     sessionStorage.removeItem("redirect_after_login");
 
